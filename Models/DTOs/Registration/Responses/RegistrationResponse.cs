@@ -1,6 +1,6 @@
-﻿namespace BackendAPI.Models.DTOs.Registration;
+﻿namespace BackendAPI.Models.DTOs.Registration.Responses;
 
-public class RegistrationResponseDto
+public class RegistrationResponse
 {
     public int Id { get; set; }
     public string RegistrationCode { get; set; } = string.Empty;

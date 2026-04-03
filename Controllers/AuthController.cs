@@ -1,5 +1,5 @@
-﻿using BackendAPI.Models.DTOs.Auth;
-using BackendAPI.Services;
+﻿using BackendAPI.Models.DTOs.Auth.Requests;
+using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackendAPI.Controllers;
@@ -16,7 +16,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginRequest dto)
     {
 
         var result = await _authService.LoginAsync(dto);

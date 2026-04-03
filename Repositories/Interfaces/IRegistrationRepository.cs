@@ -1,6 +1,6 @@
 ﻿using BackendAPI.Models.Entities;
 
-namespace BackendAPI.Repositories;
+namespace BackendAPI.Repositories.Interfaces;
 
 public interface IRegistrationRepository
 {

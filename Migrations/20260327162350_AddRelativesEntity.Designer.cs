@@ -4,6 +4,7 @@ using BackendAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackendAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260327162350_AddRelativesEntity")]
+    partial class AddRelativesEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -406,9 +409,6 @@ namespace BackendAPI.Migrations
                     b.Property<DateTime>("RequestedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("SemesterId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -425,8 +425,6 @@ namespace BackendAPI.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FromRoomId");
-
-                    b.HasIndex("SemesterId");
 
                     b.HasIndex("StudentId");
 
@@ -525,18 +523,10 @@ namespace BackendAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -694,12 +684,6 @@ namespace BackendAPI.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("BackendAPI.Models.Entities.SemesterPeriods", "Semester")
-                        .WithMany()
-                        .HasForeignKey("SemesterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("BackendAPI.Models.Entities.Student", "Student")
                         .WithMany("RoomTransferRequests")
                         .HasForeignKey("StudentId")
@@ -713,8 +697,6 @@ namespace BackendAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("FromRoom");
-
-                    b.Navigation("Semester");
 
                     b.Navigation("Student");
 

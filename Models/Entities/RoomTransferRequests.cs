@@ -11,7 +11,8 @@ public class RoomTransferRequest
     public string? RejectionReason { get; set; }
     public int TransferCountInSemester { get; set; } = 0;
     public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
-
+    public int SemesterId { get; set; }
+    public SemesterPeriods Semester { get; set; } = null!;
     // Navigation
     public Student Student { get; set; } = null!;
     public Room FromRoom { get; set; } = null!;

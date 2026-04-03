@@ -2,8 +2,10 @@
 using System.Security.Claims;
 using System.Text;
 using BackendAPI.Data;
-using BackendAPI.Models.DTOs.Auth;
-using BackendAPI.Repositories;
+using BackendAPI.Models.DTOs.Auth.Requests;
+using BackendAPI.Models.DTOs.Auth.Responses;
+using BackendAPI.Repositories.Interfaces;
+using BackendAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -20,7 +22,7 @@ public class AuthService : IAuthService
         _config = config;
     }
 
-    public async Task<LoginResponseDto?> LoginAsync(LoginDto dto)
+    public async Task<LoginResponse?> LoginAsync(LoginRequest dto)
     {
         //validate  the input
         if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Password))
@@ -38,7 +40,7 @@ public class AuthService : IAuthService
         // Tạo JWT token
         var token = GenerateToken(user);
 
-        return new LoginResponseDto
+        return new LoginResponse
         {
             Token = token,
             Role = user.Role,

@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 
-namespace BackendAPI.Models.DTOs.Registration;
+namespace BackendAPI.Models.DTOs.Registration.Requests;
 
-public class ApproveRegistrationDto
+public class ApproveRegistrationRequest
 {
     [DefaultValue(true)]
     public bool IsApproved { get; set; }

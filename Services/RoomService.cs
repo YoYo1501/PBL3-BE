@@ -1,9 +1,9 @@
 ﻿using BackendAPI.Models.DTOs.Room;
 using BackendAPI.Models.Entities;
-using BackendAPI.Repositories;
+using BackendAPI.Repositories.Interfaces;
+using BackendAPI.Services.Interfaces;
 
 namespace BackendAPI.Services;
-
 public class RoomService : IRoomService
 {
     private readonly IRoomRepository _roomRepository;

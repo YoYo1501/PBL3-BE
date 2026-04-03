@@ -1,6 +1,8 @@
 using BackendAPI.Data;
 using BackendAPI.Repositories;
+using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services;
+using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -37,11 +39,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddScoped<IRoomRepository, RoomRepository>();
 builder.Services.AddScoped<IRegistrationRepository, RegistrationRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+builder.Services.AddScoped<IRoomTransferRepository, RoomTransferRepository>();
 
 // Services
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
+
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 

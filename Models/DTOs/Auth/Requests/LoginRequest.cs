@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 
-namespace BackendAPI.Models.DTOs.Auth
+namespace BackendAPI.Models.DTOs.Auth.Requests
 {
-    public class LoginDto
+    public class LoginRequest
     {
         [DefaultValue("admin@ktx.edu.vn")]
         public string Email { get; set; } = string.Empty;

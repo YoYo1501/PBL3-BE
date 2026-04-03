@@ -13,6 +13,8 @@ public static class SeedData
         var adminUser = new User
         {
             Email = "admin@ktx.edu.vn",
+            FullName = "Ban Quản Lý KTX",
+            Phone = "0999111222",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
             Role = "Admin",
             IsActive = true
@@ -41,6 +43,16 @@ public static class SeedData
             PermanentAddress = "123 Đường ABC, Đà Nẵng"
         };
         context.Students.Add(student);
+        await context.SaveChangesAsync();
+
+        var relativeA = new Relative
+        {
+            StudentId = student.Id,
+            FullName = "Nguyễn Văn B",
+            Phone = "0912345678",
+            Relationship = "Bố"
+        };
+        context.Relatives.Add(relativeA);
         await context.SaveChangesAsync();
 
         // 3. Tạo Tòa nhà & Phòng KTX
@@ -93,6 +105,9 @@ public static class SeedData
             Phone = "0987654321",
             Email = "studentB@gmail.com",
             PermanentAddress = "456 Đường XYZ, Hà Nội",
+            RelativeName = "Trần Văn C",
+            RelativePhone = "0999888777",
+            Relationship = "Mẹ",
             StartDate = semester1.StartDate,
             EndDate = semester1.EndDate,
             Status = "Pending"
@@ -111,6 +126,9 @@ public static class SeedData
             Phone = student.Phone,
             Email = student.Email,
             PermanentAddress = student.PermanentAddress,
+            RelativeName = relativeA.FullName,
+            RelativePhone = relativeA.Phone,
+            Relationship = relativeA.Relationship,
             StartDate = semester1.StartDate,
             EndDate = semester1.EndDate,
             Status = "Approved"

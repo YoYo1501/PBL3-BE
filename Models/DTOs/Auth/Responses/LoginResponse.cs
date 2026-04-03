@@ -1,6 +1,6 @@
-﻿namespace BackendAPI.Models.DTOs.Auth
+﻿namespace BackendAPI.Models.DTOs.Auth.Responses
 {
-    public class LoginResponseDto
+    public class LoginResponse
     {
         public string Token { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;

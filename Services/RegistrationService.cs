@@ -1,7 +1,9 @@
 ﻿using BackendAPI.Data;
-using BackendAPI.Models.DTOs.Registration;
+using BackendAPI.Models.DTOs.Registration.Requests;
+using BackendAPI.Models.DTOs.Registration.Responses;
 using BackendAPI.Models.Entities;
-using BackendAPI.Repositories;
+using BackendAPI.Repositories.Interfaces;
+using BackendAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace BackendAPI.Services;
@@ -22,7 +24,7 @@ public class RegistrationService : IRegistrationService
         _context = context;
     }
 
-    public async Task<(bool Success, string Message, RegistrationResponseDto? Data)> RegisterAsync(RegistrationRequestDto dto)
+    public async Task<(bool Success, string Message, RegistrationResponse? Data)> RegisterAsync(RegistrationRequestDto dto)
     {
         // Kiểm tra CCCD đã có đơn chưa
         var hasPending = await _registrationRepo.HasPendingRegistrationAsync(dto.CitizenId);
@@ -58,6 +60,9 @@ public class RegistrationService : IRegistrationService
             Phone = dto.Phone,
             Email = dto.Email,
             PermanentAddress = dto.PermanentAddress,
+            RelativeName = dto.RelativeName,
+            RelativePhone = dto.RelativePhone,
+            Relationship = dto.Relationship,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
             Status = "Pending"
@@ -65,7 +70,7 @@ public class RegistrationService : IRegistrationService
         await _registrationRepo.AddAsync(registration);
         await _registrationRepo.SaveChangesAsync();
 
-        return (true, "Đăng ký thành công! Vui lòng chờ admin duyệt đơn.", new RegistrationResponseDto
+        return (true, "Đăng ký thành công! Vui lòng chờ admin duyệt đơn.", new RegistrationResponse
         {
             Id = registration.Id,
             RegistrationCode = registration.RegistrationCode,
@@ -78,10 +83,10 @@ public class RegistrationService : IRegistrationService
         });
     }
 
-    public async Task<List<RegistrationResponseDto>> GetAllAsync()
+    public async Task<List<RegistrationResponse>> GetAllAsync()
     {
         var list = await _registrationRepo.GetAllAsync();
-        return list.Select(r => new RegistrationResponseDto
+        return list.Select(r => new RegistrationResponse
         {
             Id = r.Id,
             RegistrationCode = r.RegistrationCode,
@@ -93,10 +98,10 @@ public class RegistrationService : IRegistrationService
             SubmittedAt = r.SubmittedAt
         }).ToList();
     }
-    public async Task<List<RegistrationResponseDto>> GetPendingAsync()
+    public async Task<List<RegistrationResponse>> GetPendingAsync()
     {
         var list = await _registrationRepo.GetPendingAsync();
-        return list.Select(r => new RegistrationResponseDto
+        return list.Select(r => new RegistrationResponse
         {
             Id = r.Id,
             RegistrationCode = r.RegistrationCode,
@@ -109,7 +114,7 @@ public class RegistrationService : IRegistrationService
         }).ToList();
     }
 
-    public async Task<(bool Success, string Message)> ApproveAsync(int id, ApproveRegistrationDto dto)
+    public async Task<(bool Success, string Message)> ApproveAsync(int id, ApproveRegistrationRequest dto)
     {
         // Lấy đơn đăng ký
         var registration = await _registrationRepo.GetByIdAsync(id);
@@ -157,7 +162,17 @@ public class RegistrationService : IRegistrationService
             await _context.Students.AddAsync(student);
             await _context.SaveChangesAsync();
 
-            // 3. Liên kết Student vào Đơn & Cập nhật phòng
+            // 3. Tạo thông tin Thân nhân
+            var relative = new Relative
+            {
+                StudentId = student.Id,
+                FullName = registration.RelativeName,
+                Phone = registration.RelativePhone,
+                Relationship = registration.Relationship
+            };
+            await _context.Relatives.AddAsync(relative);
+
+            // 4. Liên kết Student vào Đơn & Cập nhật phòng
             registration.StudentId = student.Id;
             room.CurrentOccupancy += 1;
             if (room.CurrentOccupancy >= room.Capacity)
@@ -165,7 +180,7 @@ public class RegistrationService : IRegistrationService
 
             await _roomRepo.Update(room);
 
-            // 4. Tạo hợp đồng
+            // 5. Tạo hợp đồng
             var contract = new Contract
             {
                 ContractCode = $"HD_{DateTime.Now:yyyyMMdd}_{Guid.NewGuid().ToString()[..6].ToUpper()}",
