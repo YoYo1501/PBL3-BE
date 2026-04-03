@@ -1,4 +1,5 @@
 using BackendAPI.Data;
+using BackendAPI.Middleware;
 using BackendAPI.Repositories;
 using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services;
@@ -8,9 +9,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+using BackendAPI.Converters;
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new CustomDateTimeConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -51,7 +58,7 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddMemoryCache();
 
 var app = builder.Build();
-
+app.UseMiddleware<ErrorHandlerMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

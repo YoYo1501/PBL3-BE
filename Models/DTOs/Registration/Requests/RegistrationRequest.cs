@@ -1,12 +1,13 @@
 ﻿using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-
+using System.Collections.Generic;
 namespace BackendAPI.Models.DTOs.Registration.Requests
 {
-    public class RegistrationRequestDto
+    public class RegistrationRequestDto: IValidatableObject
     {
         [Required(ErrorMessage = "Họ và tên không được để trống")]
+        [StringLength(100)]
         [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "Họ và tên chỉ được chứa chữ cái và khoảng trắng")]
         [DefaultValue("Trần Văn B")]
         public string FullName { get; set; } = string.Empty;
@@ -17,6 +18,7 @@ namespace BackendAPI.Models.DTOs.Registration.Requests
         public string CitizenId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Giới tính không được để trống")]
+        [RegularExpression(@"^(Nam|Nữ)$", ErrorMessage = "Giới tính phải là Nam hoặc Nữ")]
         [DefaultValue("Nam")]
         public string Gender { get; set; } = string.Empty;
 
@@ -60,5 +62,23 @@ namespace BackendAPI.Models.DTOs.Registration.Requests
 
         [Required(ErrorMessage = "Ngày kết thúc không được để trống")]
         public DateTime EndDate { get; set; }
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (EndDate <= StartDate)
+            {
+                yield return new ValidationResult(
+                    "Ngày kết thúc phải lớn hơn ngày bắt đầu",
+                    new[] { nameof(EndDate) }
+                );
+            }
+
+            if (StartDate.Date < DateTime.Today)
+            {
+                yield return new ValidationResult(
+                    "Ngày bắt đầu không được ở quá khứ",
+                    new[] { nameof(StartDate) }
+                );
+            }
+        }
     }
 }
