@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<SemesterPeriods> SemesterPeriods => Set<SemesterPeriods>();
     public DbSet<RenewalPackages> RenewalPackages => Set<RenewalPackages>();
     public DbSet<ElectricWaterReading> ElectricWaterReadings => Set<ElectricWaterReading>();
+    public DbSet<Relative> Relatives => Set<Relative>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +29,13 @@ public class AppDbContext : DbContext
             .HasOne(s => s.User)
             .WithOne(u => u.Student)
             .HasForeignKey<Student>(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ================= STUDENT - RELATIVE =================
+        modelBuilder.Entity<Relative>()
+            .HasOne(r => r.Student)
+            .WithMany(s => s.Relatives)
+            .HasForeignKey(r => r.StudentId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // ================= BUILDING - ROOM =================
@@ -159,6 +167,12 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<ElectricWaterReading>()
             .Property(e => e.NewWater).HasPrecision(18, 2);
+
+        // ================= ROOM TRANSFER REQUEST =================
+        modelBuilder.Entity<RoomTransferRequest>()
+            .HasOne(r => r.Semester)
+            .WithMany()
+            .HasForeignKey(r => r.SemesterId);
     }
 }
 

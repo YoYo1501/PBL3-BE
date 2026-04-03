@@ -1,5 +1,5 @@
-﻿using BackendAPI.Models.DTOs.Registration;
-using BackendAPI.Services;
+﻿using BackendAPI.Models.DTOs.Registration.Requests;
+using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackendAPI.Controllers;
@@ -41,7 +41,7 @@ public class RegistrationsController : ControllerBase
 
     // PUT /api/registrations/{id}/approve — admin duyệt hoặc từ chối
     [HttpPut("{id}/approve")]
-    public async Task<IActionResult> Approve(int id, [FromBody] ApproveRegistrationDto dto)
+    public async Task<IActionResult> Approve(int id, [FromBody] ApproveRegistrationRequest dto)
     {
         var (success, message) = await _service.ApproveAsync(id, dto);
         if (!success) return BadRequest(new { message });
