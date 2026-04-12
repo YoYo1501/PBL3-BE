@@ -9,6 +9,7 @@
         public string PasswordHash { get; set; } = string.Empty;
         public string Role { get; set; } = "Student"; // "Student" | "Admin"
         public bool IsActive { get; set; } = false;
+        public bool MustChangePassword { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation

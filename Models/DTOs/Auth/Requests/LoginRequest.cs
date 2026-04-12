@@ -1,13 +1,14 @@
-﻿using System.ComponentModel;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace BackendAPI.Models.DTOs.Auth.Requests
 {
     public class LoginRequest
     {
-        [DefaultValue("admin@ktx.edu.vn")]
+        [Required(ErrorMessage = "Email không được để trống")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
         public string Email { get; set; } = string.Empty;
 
-        [DefaultValue("Admin@123")]
+        [Required(ErrorMessage = "Mật khẩu không được để trống")]
         public string Password { get; set; } = string.Empty;
     }
 }

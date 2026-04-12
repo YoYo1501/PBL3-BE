@@ -10,6 +10,7 @@ namespace BackendAPI.Models.Entities
         public int Capacity { get; set; }
         public int CurrentOccupancy { get; set; } = 0;
         public string Status { get; set; } = "Available"; // "Available" | "Full" | "Locked"
+        public decimal Price { get; set; }// Giá thuê phòng hàng tháng
 
         // Navigation
         public Building Building { get; set; } = null!;

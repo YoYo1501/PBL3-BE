@@ -5,6 +5,7 @@ using BackendAPI.Models.Entities;
 using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BackendAPI.Exceptions;
 
 namespace BackendAPI.Services;
 
@@ -26,28 +27,48 @@ public class RegistrationService : IRegistrationService
 
     public async Task<(bool Success, string Message, RegistrationResponse? Data)> RegisterAsync(RegistrationRequestDto dto)
     {
+        dto.Email = dto.Email.Trim();
+        dto.FullName = dto.FullName.Trim();
+        dto.Phone = dto.Phone.Trim();
+        dto.CitizenId = dto.CitizenId.Trim();
+        dto.Email = dto.Email.ToLower();
         // Kiểm tra CCCD đã có đơn chưa
         var hasPending = await _registrationRepo.HasPendingRegistrationAsync(dto.CitizenId);
         if (hasPending)
-            return (false, "CCCD này đã có đơn đăng ký trong hệ thống.", null);
+            throw new BadRequestException("CCCD này đã có đơn đăng ký.");
+            
+        var cccdExistsInStudent = await _context.Students.AnyAsync(s => s.CitizenId == dto.CitizenId);
+        if (cccdExistsInStudent)
+            throw new BadRequestException("CCCD này đã được sử dụng trong hệ thống.");
 
-        // Kiểm tra email đã tồn tại chưa
-        var emailExists = await _context.Users.AnyAsync(u => u.Email == dto.Email);
-        if (emailExists)
-            return (false, "Email này đã được sử dụng.", null);
+        var hasActiveContract = await _context.Contracts
+    .AnyAsync(c => c.Student.CitizenId == dto.CitizenId
+                && c.Status == "Active");
+
+        if (hasActiveContract)
+            throw new BadRequestException("Sinh viên đang có hợp đồng còn hiệu lực.");
+
+        // Kiểm tra email đã được đăng ký trong hệ thống chưa (Users hoặc Đơn Pending)
+        var emailExistsInUser = await _context.Users.AnyAsync(u => u.Email == dto.Email);
+        if (emailExistsInUser)
+            throw new BadRequestException("Email này đã được sử dụng trong hệ thống.");
+
+        var emailExistsInRegistration = await _context.Registrations.AnyAsync(r => r.Email == dto.Email && (r.Status == "Pending" || r.Status == "Approved"));
+        if (emailExistsInRegistration)
+            throw new BadRequestException("Email này đã có đơn đăng ký đang chờ hoặc đã được duyệt.");
 
         // Kiểm tra phòng tồn tại không
         var room = await _roomRepo.GetByIdAsync(dto.RoomId);
         if (room == null)
-            return (false, "Phòng không tồn tại.", null);
+            throw new BadRequestException("Phòng không tồn tại.");
 
         // Kiểm tra phòng còn chỗ không
         if (room.CurrentOccupancy >= room.Capacity)
-            return (false, "Phòng đã đầy, vui lòng chọn phòng khác.", null);
+            throw new BadRequestException("Phòng đã đầy, vui lòng chọn phòng khác.");
 
         // Kiểm tra giới tính phù hợp không
-        if (room.Building.GenderAllowed != dto.Gender)
-            return (false, $"Phòng này chỉ dành cho {room.Building.GenderAllowed}.", null);
+        if (room.Building.GenderAllowed.ToLower() != dto.Gender.Trim().ToLower())
+            throw new BadRequestException($"Phòng chỉ dành cho {room.Building.GenderAllowed}");
 
         // Chỉ tạo Registration giữ hộ thông tin KH (Guest)
         var registration = new Registration
@@ -116,23 +137,26 @@ public class RegistrationService : IRegistrationService
 
     public async Task<(bool Success, string Message)> ApproveAsync(int id, ApproveRegistrationRequest dto)
     {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        { 
         // Lấy đơn đăng ký
         var registration = await _registrationRepo.GetByIdAsync(id);
         if (registration == null)
-            return (false, "Không tìm thấy đơn đăng ký.");
+            throw new BadRequestException("Không tìm thấy đơn đăng ký.");
 
         if (registration.Status != "Pending")
-            return (false, "Đơn này đã được xử lý rồi.");
+            throw new BadRequestException("Đơn này đã được xử lý rồi.");
 
         if (dto.IsApproved)
         {
             // Cập nhật số người trong phòng
             var room = await _roomRepo.GetByIdAsync(registration.RoomId);
             if (room == null)
-                return (false, "Phòng không tồn tại.");
+                throw new BadRequestException("Phòng không tồn tại.");
 
             if (room.CurrentOccupancy >= room.Capacity)
-                return (false, "Phòng đã đầy, không thể duyệt.");
+                throw new BadRequestException("Phòng đã đầy, không thể duyệt.");
 
             // Duyệt đơn
             registration.Status = "Approved";
@@ -143,15 +167,15 @@ public class RegistrationService : IRegistrationService
                 Email = registration.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(registration.CitizenId),
                 Role = "Student",
-                IsActive = true
+                IsActive = true,
+                MustChangePassword = true
             };
             await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
 
             // 2. Tạo Student
             var student = new Student
             {
-                UserId = user.Id,
+                User = user,
                 FullName = registration.FullName,
                 CitizenId = registration.CitizenId,
                 Gender = registration.Gender,
@@ -160,12 +184,11 @@ public class RegistrationService : IRegistrationService
                 PermanentAddress = registration.PermanentAddress
             };
             await _context.Students.AddAsync(student);
-            await _context.SaveChangesAsync();
 
-            // 3. Tạo thông tin Thân nhân
-            var relative = new Relative
+                // 3. Tạo thông tin Thân nhân
+                var relative = new Relative
             {
-                StudentId = student.Id,
+                Student = student,
                 FullName = registration.RelativeName,
                 Phone = registration.RelativePhone,
                 Relationship = registration.Relationship
@@ -173,23 +196,23 @@ public class RegistrationService : IRegistrationService
             await _context.Relatives.AddAsync(relative);
 
             // 4. Liên kết Student vào Đơn & Cập nhật phòng
-            registration.StudentId = student.Id;
+            registration.Student = student;
             room.CurrentOccupancy += 1;
             if (room.CurrentOccupancy >= room.Capacity)
                 room.Status = "Full";
 
-            await _roomRepo.Update(room);
+            _context.Rooms.Update(room);
 
             // 5. Tạo hợp đồng
             var contract = new Contract
             {
                 ContractCode = $"HD_{DateTime.Now:yyyyMMdd}_{Guid.NewGuid().ToString()[..6].ToUpper()}",
-                StudentId = student.Id,
+                Student = student,
                 RoomId = registration.RoomId,
                 StartDate = registration.StartDate,
                 EndDate = registration.EndDate,
                 Status = "Active",
-                Price = room.RoomType == "4 người" ? 500000 : 350000
+                Price = room.Price
             };
             await _context.Contracts.AddAsync(contract);
 
@@ -200,19 +223,28 @@ public class RegistrationService : IRegistrationService
         {
             // Từ chối đơn
             if (string.IsNullOrEmpty(dto.RejectionReason))
-                return (false, "Vui lòng nhập lý do từ chối.");
+                    throw new BadRequestException("Vui lòng nhập lý do từ chối.");
 
-            registration.Status = "Rejected";
+                registration.Status = "Rejected";
             registration.RejectionReason = dto.RejectionReason;
         }
 
-        await _registrationRepo.UpdateAsync(registration);
+        _context.Registrations.Update(registration);
         await _context.SaveChangesAsync();
 
-        var message = dto.IsApproved
+        await transaction.CommitAsync();
+
+            var message = dto.IsApproved
             ? "Duyệt đơn thành công, hợp đồng đã được tạo."
             : "Đã từ chối đơn đăng ký.";
 
-        return (true, message);
+            return (true, message);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
+
 }

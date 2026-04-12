@@ -1,4 +1,5 @@
 ﻿using BackendAPI.Models.DTOs.Auth.Requests;
+using BackendAPI.Models.Entities;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,24 +7,22 @@ namespace BackendAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController(IAuthService authService) : ControllerBase
 {
-    private readonly IAuthService _authService;
-
-    public AuthController(IAuthService authService)
-    {
-        _authService = authService;
-    }
-
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest dto)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        var result = await _authService.LoginAsync(dto);
+        var result = await authService.LoginAsync(dto);
 
-        if (result == null)
-            return Unauthorized("Email hoặc mật khẩu không đúng");
+        if (result.Data != null)
+            return Ok(result.Data);
 
-        return Ok(result);
+        return Unauthorized(new
+        {
+            message = result.Error
+        });
     }
 }

@@ -3,24 +3,23 @@ using BackendAPI.Models.DTOs.RoomTransfer.Requests;
 using BackendAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BackendAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class RoomTransfersController : ControllerBase
+[Authorize]
+public class RoomTransfersController(IRoomTransferService _service) : ControllerBase
 {
-    private readonly IRoomTransferService _service;
-
-    public RoomTransfersController(IRoomTransferService service)
-    {
-        _service = service;
-    }
-
     private int GetUserId()
     {
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return string.IsNullOrEmpty(userIdStr) ? 2 : int.Parse(userIdStr);
+        if (string.IsNullOrEmpty(userIdStr))
+        {
+            throw new UnauthorizedAccessException("Người dùng chưa đăng nhập");
+        }
+        return int.Parse(userIdStr);
     }
 
     // GET /api/roomtransfers/available — sinh viên xem phòng trống

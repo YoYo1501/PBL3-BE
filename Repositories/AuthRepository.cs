@@ -18,7 +18,7 @@ namespace BackendAPI.Repositories
         {
             return await _context.Users
                 .Include(u => u.Student)
-                .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
         }
     }
 }
