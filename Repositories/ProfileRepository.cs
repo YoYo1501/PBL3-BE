@@ -44,10 +44,5 @@ namespace BackendAPI.Repositories
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
-
-        public async Task AddRelativeAsync(Relative relative)
-        {
-            await _context.Relatives.AddAsync(relative);
-        }
     }
 }

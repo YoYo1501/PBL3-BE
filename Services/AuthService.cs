@@ -6,7 +6,6 @@ using BackendAPI.Models.DTOs.Auth.Requests;
 using BackendAPI.Models.DTOs.Auth.Responses;
 using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BackendAPI.Services;
@@ -16,38 +15,42 @@ public class AuthService : IAuthService
     private readonly IAuthRepository _authRepository;
     private readonly IConfiguration _config;
 
-    public AuthService(IAuthRepository authRepository, IConfiguration config)
+    public AuthService(
+        IAuthRepository authRepository,
+        IConfiguration config
+    )
     {
         _authRepository = authRepository;
         _config = config;
     }
 
-    public async Task<LoginResponse?> LoginAsync(LoginRequest dto)
+    public async Task<(LoginResponse? Data, string? Error)> LoginAsync(LoginRequest dto)
     {
-        //validate  the input
-        if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Password))
-            return null;
+        var email = dto.Email.Trim().ToLower();
+        var user = await _authRepository.GetUserByEmailAsync(email);
 
-        // Tìm user theo email
-        var user = await _authRepository.GetUserByEmailAsync(dto.Email);
 
-        if (user == null) return null;
+        if (user == null)
+            return (null, "Email hoặc mật khẩu không đúng");
 
-        // Kiểm tra password
+        if (!user.IsActive)
+            return (null, "Tài khoản đã bị khóa");
+
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-            return null;
+            return (null, "Email hoặc mật khẩu không đúng");
 
-        // Tạo JWT token
         var token = GenerateToken(user);
 
-        return new LoginResponse
+        return (new LoginResponse
         {
             Token = token,
             Role = user.Role,
-            FullName = user.Student?.FullName ?? string.Empty,
+            FullName = user.Student?.FullName ?? "",
             UserId = user.Id
-        };
+        }, null);
     }
+
+
 
     private string GenerateToken(BackendAPI.Models.Entities.User user)
     {

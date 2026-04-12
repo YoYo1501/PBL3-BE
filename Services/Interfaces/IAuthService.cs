@@ -5,5 +5,5 @@ namespace BackendAPI.Services.Interfaces;
 
 public interface IAuthService
 {
-    Task<LoginResponse?> LoginAsync(LoginRequest dto);
+    Task<(LoginResponse? Data, string? Error)> LoginAsync(LoginRequest dto);
 }

@@ -9,6 +9,5 @@ namespace BackendAPI.Repositories.Interfaces
         Task<bool> PhoneExistsAsync(string phone, int excludeUserId);
         Task UpdateStudentAsync(Student student);
         Task UpdateUserAsync(User user);
-        Task AddRelativeAsync(Relative relative);
     }
 }

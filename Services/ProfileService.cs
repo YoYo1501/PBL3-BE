@@ -71,15 +71,28 @@ namespace BackendAPI.Services
 
             // C?p nh?t thông tin thân nhân
             var relative = student.Relatives.FirstOrDefault();
+            
             if (relative == null)
             {
-                relative = new Relative { StudentId = student.Id };
-                await _profileRepo.AddRelativeAsync(relative);
-            }
+                if (student.Relatives == null)
+                    student.Relatives = new List<Relative>();
 
-            relative.FullName = request.RelativeName;
-            relative.Phone = request.RelativePhone;
-            relative.Relationship = request.Relationship;
+                relative = new Relative
+                {
+                    FullName = request.RelativeName,
+                    Phone = request.RelativePhone,
+                    Relationship = request.Relationship,
+                    StudentId = student.Id
+                };
+
+                student.Relatives.Add(relative);
+            }
+            else
+            {
+                relative.FullName = request.RelativeName;
+                relative.Phone = request.RelativePhone;
+                relative.Relationship = request.Relationship;
+            }
 
             await _profileRepo.UpdateStudentAsync(student);
 
