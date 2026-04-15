@@ -4,7 +4,7 @@ namespace BackendAPI.Repositories.Interfaces
 {
     public interface IAuthRepository
     {
-        Task<User?> GetUserByEmailAsync(string email);
+        Task<User?> GetUserByCitizenIdAsync(string citizenId);
     }
 }
         

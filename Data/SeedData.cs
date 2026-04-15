@@ -12,7 +12,7 @@ public static class SeedData
         // 1. Tạo tài khoản Admin & User mẫu
         var adminUser = new User
         {
-            Email = "admin@ktx.edu.vn",
+            CitizenId = "000000000000", // CCCD mặc định của Quản trị viên
             FullName = "Ban Quản Lý KTX",
             Phone = "0999111222",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
@@ -20,15 +20,46 @@ public static class SeedData
             IsActive = true
         };
 
+        var adminSanh = new User
+        {
+            CitizenId = "048200000001", // Thay bằng số CCCD thực của Sanh
+            FullName = "Sanh",
+            Phone = "0999111223",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+            Role = "Admin",
+            IsActive = true
+        };
+
+        var adminLinh = new User
+        {
+            CitizenId = "048200000002", // Thay bằng số CCCD thực của Linh
+            FullName = "Linh",
+            Phone = "0999111224",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+            Role = "Admin",
+            IsActive = true
+        };
+
+        var adminViet = new User
+        {
+            CitizenId = "048200000003", // Thay bằng số CCCD thực của Việt
+            FullName = "Việt",
+            Phone = "0999111225",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+            Role = "Admin",
+            IsActive = true
+        };
+
         var studentUser = new User
         {
-            Email = "sinhvien@ktx.edu.vn",
+            Email = "sinhvien@gmail.com",
+            CitizenId = "051206004478", // Tài khoản là CCCD của sinh viên
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Student@123"),
             Role = "Student",
             IsActive = true
         };
 
-        context.Users.AddRange(adminUser, studentUser);
+        context.Users.AddRange(adminUser, adminSanh, adminLinh, adminViet, studentUser);
         await context.SaveChangesAsync();
 
         // 2. Tạo thông tin sinh viên liên kết với User
@@ -39,7 +70,7 @@ public static class SeedData
             CitizenId = "051206004478",
             Gender = "Nam",
             Phone = "0338055106",
-            Email = "sinhvien@ktx.edu.vn",
+            Email = "sinhvien@gmail.com",
             PermanentAddress = "123 Đường ABC, Đà Nẵng"
         };
         context.Students.Add(student);
@@ -195,6 +226,17 @@ public static class SeedData
             IsRead = false
         };
         context.Notifications.Add(notification);
+
+        // 11. Tạo thiết bị (Facilities)
+        var facility1 = new Facility { RoomId = roomA101.Id, Name = "Giường", Quantity = 6, Status = "Good" };
+        var facility2 = new Facility { RoomId = roomA101.Id, Name = "Quạt trần", Quantity = 2, Status = "Good" };
+        var facility3 = new Facility { RoomId = roomA101.Id, Name = "Bàn học", Quantity = 6, Status = "Good" };
+        var facility4 = new Facility { RoomId = roomA102.Id, Name = "Giường", Quantity = 4, Status = "Good" };
+        var facility5 = new Facility { RoomId = roomA102.Id, Name = "Quạt trần", Quantity = 1, Status = "Damaged" };
+        var facility6 = new Facility { RoomId = roomA103.Id, Name = "Giường", Quantity = 6, Status = "UnderMaintenance" };
+        var facility7 = new Facility { RoomId = roomB101.Id, Name = "Điều hòa", Quantity = 1, Status = "Good" };
+
+        context.Facilities.AddRange(facility1, facility2, facility3, facility4, facility5, facility6, facility7);
 
         await context.SaveChangesAsync();
     }

@@ -28,7 +28,7 @@ namespace BackendAPI.Models.DTOs.Registration.Requests
         public string Phone { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Email không được để trống")]
-        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@gmail\.com$", ErrorMessage = "Email phải có định dạng @gmail.com")]
         [DefaultValue("studentb@gmail.com")]
         public string Email { get; set; } = string.Empty;
 
@@ -38,18 +38,15 @@ namespace BackendAPI.Models.DTOs.Registration.Requests
         public string PermanentAddress { get; set; } = string.Empty;
 
         // Thân nhân
-        [Required(ErrorMessage = "Họ tên thân nhân không được để trống")]
-        [RegularExpression(@"^[\p{L}\s]+$", ErrorMessage = "Họ tên thân nhân chỉ được chứa chữ cái và khoảng trắng")]
-        [DefaultValue("Trần Văn C")]
+        [RegularExpression(@"^([\p{L}\s]+)?$", ErrorMessage = "Họ tên thân nhân chỉ được chứa chữ cái và khoảng trắng")]
+        [DefaultValue("")]
         public string RelativeName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Số điện thoại thân nhân không được để trống")]
-        [RegularExpression(@"^(03|05|07|08|09)\d{8}$", ErrorMessage = "Số điện thoại thân nhân không hợp lệ")]
-        [DefaultValue("0999888777")]
+        [RegularExpression(@"^((03|05|07|08|09)\d{8})?$", ErrorMessage = "Số điện thoại thân nhân không hợp lệ")]
+        [DefaultValue("")]
         public string RelativePhone { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Mối quan hệ không được để trống")]
-        [DefaultValue("Phụ huynh")]
+        [DefaultValue("")]
         public string Relationship { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Mã phòng không được để trống")]

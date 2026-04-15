@@ -9,21 +9,12 @@ using BackendAPI.Exceptions;
 
 namespace BackendAPI.Services;
 
-public class RegistrationService : IRegistrationService
+public class RegistrationService(
+IRegistrationRepository _registrationRepo,
+IRoomRepository _roomRepo,
+IEmailService _emailService,
+AppDbContext _context) : IRegistrationService
 {
-    private readonly IRegistrationRepository _registrationRepo;
-    private readonly IRoomRepository _roomRepo;
-    private readonly AppDbContext _context;
-
-    public RegistrationService(
-        IRegistrationRepository registrationRepo,
-        IRoomRepository roomRepo,
-        AppDbContext context)
-    {
-        _registrationRepo = registrationRepo;
-        _roomRepo = roomRepo;
-        _context = context;
-    }
 
     public async Task<(bool Success, string Message, RegistrationResponse? Data)> RegisterAsync(RegistrationRequestDto dto)
     {
@@ -32,6 +23,9 @@ public class RegistrationService : IRegistrationService
         dto.Phone = dto.Phone.Trim();
         dto.CitizenId = dto.CitizenId.Trim();
         dto.Email = dto.Email.ToLower();
+        if (!dto.Email.EndsWith("@gmail.com"))
+            throw new BadRequestException("Email phải có định dạng @gmail.com");
+
         // Kiểm tra CCCD đã có đơn chưa
         var hasPending = await _registrationRepo.HasPendingRegistrationAsync(dto.CitizenId);
         if (hasPending)
@@ -161,10 +155,11 @@ public class RegistrationService : IRegistrationService
             // Duyệt đơn
             registration.Status = "Approved";
 
-            // 1. Tạo User (username = Email, password = CCCD)
+            // 1. Tạo User (username = CCCD, password = CCCD)
             var user = new User
             {
                 Email = registration.Email,
+                CitizenId = registration.CitizenId,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(registration.CitizenId),
                 Role = "Student",
                 IsActive = true,
@@ -216,8 +211,8 @@ public class RegistrationService : IRegistrationService
             };
             await _context.Contracts.AddAsync(contract);
 
-            // TODO: Gửi email thông báo tài khoản cho sinh viên (làm sau)
-            // await _emailService.SendAccountInfoAsync(registration.Email, registration.FullName, registration.CitizenId);
+            // Gửi email thông báo tài khoản cho sinh viên
+            await _emailService.SendAccountInfoAsync(registration.Email, registration.FullName, registration.CitizenId);
         }
         else
         {

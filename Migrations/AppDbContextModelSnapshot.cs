@@ -17,7 +17,7 @@ namespace BackendAPI.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -129,6 +129,41 @@ namespace BackendAPI.Migrations
                     b.ToTable("ElectricWaterReadings");
                 });
 
+            modelBuilder.Entity("BackendAPI.Models.Entities.Facility", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoomId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("Facilities");
+                });
+
             modelBuilder.Entity("BackendAPI.Models.Entities.Invoice", b =>
                 {
                     b.Property<int>("Id")
@@ -189,6 +224,9 @@ namespace BackendAPI.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
@@ -346,6 +384,44 @@ namespace BackendAPI.Migrations
                     b.ToTable("RenewalPackages");
                 });
 
+            modelBuilder.Entity("BackendAPI.Models.Entities.RenewalRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RenewalPackageId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("RenewalPackageId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("RenewalRequests");
+                });
+
             modelBuilder.Entity("BackendAPI.Models.Entities.Room", b =>
                 {
                     b.Property<int>("Id")
@@ -362,6 +438,9 @@ namespace BackendAPI.Migrations
 
                     b.Property<int>("CurrentOccupancy")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -491,6 +570,9 @@ namespace BackendAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PermanentAddress")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -513,7 +595,7 @@ namespace BackendAPI.Migrations
                     b.ToTable("Students");
                 });
 
-            modelBuilder.Entity("BackendAPI.Models.Entities.User", b =>
+            modelBuilder.Entity("BackendAPI.Models.Entities.StudentRequest", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -524,9 +606,56 @@ namespace BackendAPI.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Email")
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("StudentRequests");
+                });
+
+            modelBuilder.Entity("BackendAPI.Models.Entities.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CitizenId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -552,7 +681,7 @@ namespace BackendAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("CitizenId")
                         .IsUnique();
 
                     b.ToTable("Users");
@@ -604,7 +733,7 @@ namespace BackendAPI.Migrations
                     b.HasOne("BackendAPI.Models.Entities.Student", "Student")
                         .WithMany("Contracts")
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Room");
@@ -618,6 +747,17 @@ namespace BackendAPI.Migrations
                         .WithMany("ElectricWaterReadings")
                         .HasForeignKey("RoomId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("BackendAPI.Models.Entities.Facility", b =>
+                {
+                    b.HasOne("BackendAPI.Models.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Room");
@@ -681,6 +821,33 @@ namespace BackendAPI.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("BackendAPI.Models.Entities.RenewalRequest", b =>
+                {
+                    b.HasOne("BackendAPI.Models.Entities.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BackendAPI.Models.Entities.RenewalPackages", "RenewalPackage")
+                        .WithMany()
+                        .HasForeignKey("RenewalPackageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BackendAPI.Models.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("RenewalPackage");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("BackendAPI.Models.Entities.Room", b =>
                 {
                     b.HasOne("BackendAPI.Models.Entities.Building", "Building")
@@ -736,6 +903,17 @@ namespace BackendAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BackendAPI.Models.Entities.StudentRequest", b =>
+                {
+                    b.HasOne("BackendAPI.Models.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("BackendAPI.Models.Entities.ViolationRecord", b =>

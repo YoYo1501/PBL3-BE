@@ -14,11 +14,11 @@ namespace BackendAPI.Repositories
             _context = context;
         }
 
-        public async Task<User?> GetUserByEmailAsync(string email)
+        public async Task<User?> GetUserByCitizenIdAsync(string citizenId)
         {
             return await _context.Users
                 .Include(u => u.Student)
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+                .FirstOrDefaultAsync(u => u.CitizenId == citizenId);
         }
     }
 }

@@ -6,6 +6,7 @@
         public string FullName { get; set; } = string.Empty; // Dành cho Admin 
         public string Phone { get; set; } = string.Empty;    // Dành cho Admin
         public string Email { get; set; } = string.Empty;
+        public string CitizenId { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         public string Role { get; set; } = "Student"; // "Student" | "Admin"
         public bool IsActive { get; set; } = false;

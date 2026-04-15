@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.DTOs.RoomTransfer;
+using BackendAPI.Models.DTOs.RoomTransfer;
 using BackendAPI.Models.DTOs.RoomTransfer.Requests;
 using BackendAPI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -12,56 +12,61 @@ namespace BackendAPI.Controllers;
 [Authorize]
 public class RoomTransfersController(IRoomTransferService _service) : ControllerBase
 {
-    private int GetUserId()
+    private int GetStudentId()
     {
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdStr))
+        var studentIdStr = User.FindFirstValue("StudentId");
+        if (string.IsNullOrEmpty(studentIdStr))
         {
-            throw new UnauthorizedAccessException("Người dùng chưa đăng nhập");
+            throw new UnauthorizedAccessException("Ng??i d�ng ch?a ??ng nh?p ho?c kh�ng ph?i sinh vi�n");
         }
-        return int.Parse(userIdStr);
+        return int.Parse(studentIdStr);
     }
 
-    // GET /api/roomtransfers/available — sinh viên xem phòng trống
+    // GET /api/roomtransfers/available � sinh vi�n xem ph�ng tr?ng
     [HttpGet("available")]
+    [Authorize(Roles = "Student")]
     public async Task<IActionResult> GetAvailableRooms()
     {
-        var studentId = GetUserId();
+        var studentId = GetStudentId();
         var (success, message, rooms) = await _service.GetAvailableRoomsAsync(studentId);
         if (!success) return BadRequest(new { message });
         return Ok(new { message, rooms });
     }
 
-    // POST /api/roomtransfers/hold — giữ chỗ 10 phút
+    // POST /api/roomtransfers/hold � gi? ch? 10 ph�t
     [HttpPost("hold")]
+    [Authorize(Roles = "Student")]
     public async Task<IActionResult> HoldRoom([FromBody] HoldRoomRequest dto)
     {
-        var studentId = GetUserId();
+        var studentId = GetStudentId();
         var (success, message) = await _service.HoldRoomAsync(studentId, dto);
         if (!success) return BadRequest(new { message });
         return Ok(new { message });
     }
 
-    // POST /api/roomtransfers — xác nhận chuyển phòng
+    // POST /api/roomtransfers � x�c nh?n chuy?n ph�ng
     [HttpPost]
+    [Authorize(Roles = "Student")]
     public async Task<IActionResult> SubmitTransfer([FromBody] RoomTransferRequest dto)
     {
-        var studentId = GetUserId();
+        var studentId = GetStudentId();
         var (success, message) = await _service.SubmitTransferAsync(studentId, dto);
         if (!success) return BadRequest(new { message });
         return Ok(new { message });
     }
 
-    // GET /api/roomtransfers/pending — admin xem danh sách chờ duyệt
+    // GET /api/roomtransfers/pending � admin xem danh s�ch ch? duy?t
     [HttpGet("pending")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllPending()
     {
         var list = await _service.GetAllPendingAsync();
         return Ok(list);
     }
 
-    // PUT /api/roomtransfers/{id}/approve — admin duyệt/từ chối
+    // PUT /api/roomtransfers/{id}/approve � admin duy?t/t?i
     [HttpPut("{id}/approve")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Approve(int id, [FromBody] ApproveTransfer dto)
     {
         var (success, message) = await _service.ApproveTransferAsync(id, dto.IsApproved, dto.RejectionReason);

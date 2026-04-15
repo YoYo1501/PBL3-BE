@@ -27,9 +27,12 @@ public class RoomTransferRepository : IRoomTransferRepository
                 && r.Status != "Rejected");
 
     public async Task<SemesterPeriods?> GetCurrentSemesterAsync()
-        => await _context.SemesterPeriods
-            .FirstOrDefaultAsync(s => s.StartDate <= DateTime.UtcNow
-                && s.EndDate >= DateTime.UtcNow);
+    {
+        var now = DateTime.UtcNow;
+        return await _context.SemesterPeriods
+            .FirstOrDefaultAsync(s => s.StartDate <= now && s.EndDate >= now)
+            ?? await _context.SemesterPeriods.OrderByDescending(s => s.EndDate).FirstOrDefaultAsync();
+    }
 
     public async Task<List<Room>> GetAvailableRoomsAsync(string gender, int excludeRoomId)
         => await _context.Rooms
