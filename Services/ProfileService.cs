@@ -6,14 +6,8 @@ using BackendAPI.Services.Interfaces;
 
 namespace BackendAPI.Services
 {
-    public class ProfileService : IProfileService
+    public class ProfileService(IProfileRepository _profileRepo) : IProfileService
     {
-        private readonly IProfileRepository _profileRepo;
-
-        public ProfileService(IProfileRepository profileRepo)
-        {
-            _profileRepo = profileRepo;
-        }
 
         public async Task<(bool Success, string Message, UserProfileResponse? Data)> GetProfileAsync(int userId)
         {
@@ -55,15 +49,37 @@ namespace BackendAPI.Services
 
         public async Task<(bool Success, string Message)> UpdateProfileAsync(int userId, UpdateProfileRequest request)
         {
-            var student = await _profileRepo.GetStudentByUserIdAsync(userId);
-
-            if (student == null)
-                return (false, "Không tìm th?y thông tin sinh viên");
+            var user = await _profileRepo.GetUserByIdAsync(userId);
+            if (user == null)
+                return (false, "Không tìm th?y thông tin tài kho?n");
 
             // Ki?m tra S?T trùng v?i ng??i khác trong h? th?ng (KHÔNG tính b?n thân mình)
             var phoneExists = await _profileRepo.PhoneExistsAsync(request.Phone, userId);
             if (phoneExists)
                 return (false, "S? ?i?n tho?i ?ã t?n t?i trong h? th?ng");
+
+            if (user.Role == "Admin")
+            {
+                user.Phone = request.Phone;
+                await _profileRepo.UpdateUserAsync(user);
+                return (true, "C?p nh?t thông tin Admin thành công");
+            }
+
+            var student = await _profileRepo.GetStudentByUserIdAsync(userId);
+            if (student == null)
+                return (false, "Không tìm th?y thông tin sinh viên");
+
+            // Validate student specific fields
+            if (string.IsNullOrWhiteSpace(request.PermanentAddress))
+                return (false, "??a ch? th??ng trú không ???c ?? tr?ng");
+            if (request.PermanentAddress.Length < 10)
+                return (false, "??a ch? th??ng trú ph?i có ít nh?t 10 ký t?");
+            if (string.IsNullOrWhiteSpace(request.RelativeName))
+                return (false, "H? tên thân nhân không ???c ?? tr?ng");
+            if (string.IsNullOrWhiteSpace(request.RelativePhone))
+                return (false, "S? ?i?n tho?i thân nhân không ???c ?? tr?ng");
+            if (string.IsNullOrWhiteSpace(request.Relationship))
+                return (false, "M?i quan h? không ???c ?? tr?ng");
 
             // C?p nh?t thông tin b?n thân sinh viên
             student.Phone = request.Phone;

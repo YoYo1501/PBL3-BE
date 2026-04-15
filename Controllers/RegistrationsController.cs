@@ -1,15 +1,36 @@
-Ôªøusing BackendAPI.Models.DTOs.Registration.Requests;
+using BackendAPI.Models.DTOs.Registration.Requests;
 using BackendAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackendAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class RegistrationsController(IRegistrationService service) : ControllerBase
+[Authorize]
+public class RegistrationsController(IRegistrationService service, IOcrService ocrService) : ControllerBase
 {
-    // POST /api/registrations ‚Äî sinh vi√™n g·ª≠i ƒë∆°n (kh√¥ng c·∫ßn login)
+    // POST /api/registrations/extract-cccd
+    [HttpPost("extract-cccd")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExtractCccdInfo(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Vui lÚng t?i lÍn ?nh CCCD." });
+
+        try
+        {
+            var extractedData = await ocrService.ExtractCccdInfoAsync(file);
+            return Ok(new { success = true, data = extractedData });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "L?i khi trÌch xu?t d? li?u: " + ex.Message });
+        }
+    }
+    // POST /api/registrations ó sinh viÍn g?i don (khÙng c?n login)
     [HttpPost]
+    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegistrationRequestDto dto)
     {
         var (success, message, data) = await service.RegisterAsync(dto);
@@ -17,23 +38,26 @@ public class RegistrationsController(IRegistrationService service) : ControllerB
         return Ok(new { message, data });
     }
 
-    // GET /api/registrations ‚Äî admin xem danh s√°ch
+    // GET /api/registrations ó admin xem danh s·ch
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll()
     {
         var list = await service.GetAllAsync();
         return Ok(list);
     }
-    // GET /api/registrations/pending ‚Äî admin xem danh s√°ch ch·ªù duy·ªát
+    // GET /api/registrations/pending ó admin xem danh s·ch ch? duy?t
     [HttpGet("pending")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetPending()
     {
         var list = await service.GetPendingAsync();
         return Ok(list);
     }
 
-    // PUT /api/registrations/{id}/approve ‚Äî admin duy·ªát ho·∫∑c t·ª´ ch·ªëi
+    // PUT /api/registrations/{id}/approve ó admin duy?t ho?c t? ch?i
     [HttpPut("{id}/approve")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Approve(int id, [FromBody] ApproveRegistrationRequest dto)
     {
         var (success, message) = await service.ApproveAsync(id, dto);

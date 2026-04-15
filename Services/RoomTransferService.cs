@@ -1,4 +1,5 @@
-﻿using BackendAPI.Models.DTOs.RoomTransfer;
+﻿using BackendAPI.Models.DTOs.Room;
+using BackendAPI.Models.DTOs.RoomTransfer;
 using BackendAPI.Models.DTOs.RoomTransfer.Requests;
 using BackendAPI.Models.Entities;
 using BackendAPI.Repositories.Interfaces;
@@ -7,18 +8,10 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace BackendAPI.Services;
 
-public class RoomTransferService : IRoomTransferService
+public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _cache) : IRoomTransferService
 {
-    private readonly IRoomTransferRepository _repo;
-    private readonly IMemoryCache _cache;
 
-    public RoomTransferService(IRoomTransferRepository repo, IMemoryCache cache)
-    {
-        _repo = repo;
-        _cache = cache;
-    }
-
-    public async Task<(bool Success, string Message, List<RoomTransferResponseDto>? Rooms)> GetAvailableRoomsAsync(int studentId)
+    public async Task<(bool Success, string Message, List<RoomDto>? Rooms)> GetAvailableRoomsAsync(int studentId)
     {
         // Kiểm tra hợp đồng hiệu lực
         var contract = await _repo.GetActiveContractAsync(studentId);
@@ -42,13 +35,17 @@ public class RoomTransferService : IRoomTransferService
         // Lấy danh sách phòng trống cùng giới tính
         var rooms = await _repo.GetAvailableRoomsAsync(currentRoom.Building.GenderAllowed, currentRoom.Id);
 
-        var result = rooms.Select(r => new RoomTransferResponseDto
+        var result = rooms.Select(r => new RoomDto
         {
             Id = r.Id,
-            FromRoomCode = currentRoom.RoomCode,
-            ToRoomCode = r.RoomCode,
+            RoomCode = r.RoomCode,
+            RoomType = r.RoomType,
+            Capacity = r.Capacity,
+            CurrentOccupancy = r.CurrentOccupancy,
             Status = r.Status,
-            RequestedAt = DateTime.UtcNow
+            BuildingCode = r.Building?.Code ?? string.Empty,
+            BuildingName = r.Building?.Name ?? string.Empty,
+            GenderAllowed = r.Building?.GenderAllowed ?? string.Empty
         }).ToList();
 
         return (true, "Lấy danh sách phòng thành công.", result);

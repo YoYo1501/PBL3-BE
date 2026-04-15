@@ -1,9 +1,10 @@
 ﻿
 namespace BackendAPI.Models.Entities
 {
-    public class Room
+    public class Room : ISoftDelete
     {
         public int Id { get; set; }
+        public bool IsDeleted { get; set; } = false;
         public int BuildingId { get; set; }
         public string RoomCode { get; set; } = string.Empty;  // "A101"
         public string RoomType { get; set; } = string.Empty;  // "4 người" | "6 người"

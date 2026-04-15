@@ -24,9 +24,37 @@ public class RoomRepository : IRoomRepository
             .Include(r => r.Building) // cần để check GenderAllowed
             .FirstOrDefaultAsync(r => r.Id == id);
 
+    public async Task<Room?> GetRoomByStudentIdAsync(int studentId)
+    {
+        var contract = await _context.Contracts
+            .FirstOrDefaultAsync(c => c.StudentId == studentId && c.Status == "Active" && c.EndDate >= DateTime.UtcNow);
+        if (contract == null) return null;
+        
+        return await _context.Rooms
+            .Include(r => r.Building)
+            .FirstOrDefaultAsync(r => r.Id == contract.RoomId);
+    }
+
+    public async Task AddAsync(Room room)
+    {
+        await _context.Rooms.AddAsync(room);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task Update(Room room)
     {
         _context.Rooms.Update(room);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Room room)
+    {
+        _context.Rooms.Remove(room);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> BuildingExistsAsync(int buildingId)
+    {
+        return await _context.Buildings.AnyAsync(b => b.Id == buildingId);
     }
 }

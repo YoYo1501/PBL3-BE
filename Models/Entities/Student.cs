@@ -1,8 +1,9 @@
 ﻿namespace BackendAPI.Models.Entities
 {
-    public class Student
+    public class Student : ISoftDelete
     {
         public int Id { get; set; }
+        public bool IsDeleted { get; set; } = false;
         public int UserId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string CitizenId { get; set; } = string.Empty; // CCCD

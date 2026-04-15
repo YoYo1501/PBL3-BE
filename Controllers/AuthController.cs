@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.DTOs.Auth.Requests;
+using BackendAPI.Models.DTOs.Auth.Requests;
 using BackendAPI.Models.Entities;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
