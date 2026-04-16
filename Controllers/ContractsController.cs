@@ -26,6 +26,15 @@ public class ContractsController(IContractService service) : ControllerBase
         return Ok(new { message, data });
     }
 
+    [HttpGet("my/renewals")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> GetMyRenewals()
+    {
+        var studentId = GetStudentId();
+        var data = await service.GetMyRenewalsAsync(studentId);
+        return Ok(data);
+    }
+
     [HttpGet("renewal-packages")]
     [Authorize(Roles = "Student")]
     public async Task<IActionResult> GetRenewalPackages()

@@ -9,6 +9,7 @@ public interface IContractRepository
     Task<bool> HasUnpaidInvoiceAsync(int studentId);
     Task<int> CountViolationsAsync(int studentId);
     Task<RenewalRequest?> GetPendingRenewalAsync(int studentId);
+    Task<List<RenewalRequest>> GetMyRenewalsAsync(int studentId);
     Task AddRenewalRequestAsync(RenewalRequest request);
     Task<RenewalRequest?> GetRenewalByIdAsync(int id);
     Task<List<RenewalRequest>> GetAllPendingRenewalsAsync();

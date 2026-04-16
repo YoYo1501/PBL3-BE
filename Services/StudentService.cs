@@ -32,6 +32,7 @@ public class StudentService(IStudentRepository repo) : IStudentService
         if (phoneExists)
             return (false, "Số điện thoại đã tồn tại trong hệ thống.");
 
+        student.FullName = dto.FullName;
         student.Phone = dto.Phone;
         student.PermanentAddress = dto.PermanentAddress;
         student.User.IsActive = dto.IsActive;

@@ -99,6 +99,19 @@ public class ContractService(IContractRepository _repo) : IContractService
         }).ToList();
     }
 
+    public async Task<List<RenewalResponseDto>> GetMyRenewalsAsync(int studentId)
+    {
+        var list = await _repo.GetMyRenewalsAsync(studentId);
+        return list.Select(r => new RenewalResponseDto
+        {
+            Id = r.Id,
+            ContractCode = r.Contract.ContractCode,
+            PackageName = r.RenewalPackage.Name,
+            Status = r.Status,
+            RequestedAt = r.RequestedAt
+        }).ToList();
+    }
+
     public async Task<(bool Success, string Message)> ApproveRenewalAsync(int requestId, ApproveRenewalDto dto)
     {
         var request = await _repo.GetRenewalByIdAsync(requestId);
@@ -196,8 +209,6 @@ public class ContractService(IContractRepository _repo) : IContractService
             return (false, "Hợp đồng không tồn tại.");
 
         contract.Status = "Inactive";
-        // Alternatively, maybe add a Repo method to actually delete if needed
-        // but soft delete by Status is usually safer
         await _repo.UpdateContractAsync(contract);
         await _repo.SaveChangesAsync();
 

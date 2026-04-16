@@ -33,6 +33,14 @@ public class ContractRepository(AppDbContext _context) : IContractRepository
         => await _context.RenewalRequests
             .FirstOrDefaultAsync(r => r.StudentId == studentId && r.Status == "Pending");
 
+    public async Task<List<RenewalRequest>> GetMyRenewalsAsync(int studentId)
+        => await _context.RenewalRequests
+            .Include(r => r.Contract)
+            .Include(r => r.RenewalPackage)
+            .Where(r => r.StudentId == studentId)
+            .OrderByDescending(r => r.RequestedAt)
+            .ToListAsync();
+
     public async Task AddRenewalRequestAsync(RenewalRequest request)
         => await _context.RenewalRequests.AddAsync(request);
 
