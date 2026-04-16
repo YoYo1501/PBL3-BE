@@ -1,4 +1,3 @@
-using BackendAPI.Models.DTOs.Room;
 using BackendAPI.Models.DTOs.RoomTransfer;
 using BackendAPI.Models.DTOs.RoomTransfer.Requests;
 using BackendAPI.Services;
@@ -32,16 +31,6 @@ public class RoomTransfersController(IRoomTransferService _service) : Controller
         var (success, message, rooms) = await _service.GetAvailableRoomsAsync(studentId);
         if (!success) return BadRequest(new { message });
         return Ok(new { message, rooms });
-    }
-
-    // GET /api/roomtransfers/my — sinh viên xem l?ch s? ch?nh s? c?n phòng c?a m?nh
-    [HttpGet("my")]
-    [Authorize(Roles = "Student")]
-    public async Task<IActionResult> GetMyTransfers()
-    {
-        var studentId = GetStudentId();
-        var data = await _service.GetMyTransfersAsync(studentId);
-        return Ok(data);
     }
 
     // POST /api/roomtransfers/hold — gi? ch? 10 phút

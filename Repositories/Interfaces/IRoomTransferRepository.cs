@@ -10,7 +10,6 @@ namespace BackendAPI.Repositories.Interfaces
         Task<List<Room>> GetAvailableRoomsAsync(string gender, int excludeRoomId);
         Task<Room?> GetRoomByIdAsync(int roomId);
         Task<RoomTransferRequest?> GetPendingTransferAsync(int studentId);
-        Task<List<RoomTransferRequest>> GetMyTransfersAsync(int studentId);
         Task AddAsync(RoomTransferRequest request);
         Task<List<RoomTransferRequest>> GetAllPendingAsync();
         Task UpdateRoomAsync(Room room);

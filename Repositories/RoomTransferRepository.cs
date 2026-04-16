@@ -53,16 +53,6 @@ public class RoomTransferRepository : IRoomTransferRepository
             .FirstOrDefaultAsync(r => r.StudentId == studentId
                 && r.Status == "Pending");
 
-    public async Task<List<RoomTransferRequest>> GetMyTransfersAsync(int studentId)
-        => await _context.RoomTransferRequests
-            .Include(r => r.FromRoom)
-                .ThenInclude(room => room.Building)
-            .Include(r => r.ToRoom)
-                .ThenInclude(room => room.Building)
-            .Where(r => r.StudentId == studentId)
-            .OrderByDescending(r => r.RequestedAt)
-            .ToListAsync();
-
     public async Task AddAsync(RoomTransferRequest request)
         => await _context.RoomTransferRequests.AddAsync(request);
 
