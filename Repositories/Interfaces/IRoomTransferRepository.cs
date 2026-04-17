@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.Entities;
+using BackendAPI.Models.Entities;
 
 namespace BackendAPI.Repositories.Interfaces
 {
@@ -12,6 +12,7 @@ namespace BackendAPI.Repositories.Interfaces
         Task<RoomTransferRequest?> GetPendingTransferAsync(int studentId);
         Task AddAsync(RoomTransferRequest request);
         Task<List<RoomTransferRequest>> GetAllPendingAsync();
+        Task<List<RoomTransferRequest>> GetMyTransfersAsync(int studentId);
         Task UpdateRoomAsync(Room room);
         Task UpdateTransferAsync(RoomTransferRequest request);
         Task SaveChangesAsync();

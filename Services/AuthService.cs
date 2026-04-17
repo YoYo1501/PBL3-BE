@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BackendAPI.Data;
@@ -37,7 +37,8 @@ public class AuthService(
             Token = token,
             Role = user.Role,
             FullName = user.Student?.FullName ?? "",
-            UserId = user.Id
+            UserId = user.Id,
+            MustChangePassword = user.MustChangePassword
         }, null);
     }
 

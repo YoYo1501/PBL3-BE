@@ -15,18 +15,18 @@ namespace BackendAPI.Services
 
             if (student == null)
             {
-                // N?u User l� Admin, c� th? x? l� tr? v? Profile c?a Admin t?i ?�y
+                // Nếu User là Admin, có thể xử lý trả về Profile của Admin tại đây
                 var user = await _profileRepo.GetUserByIdAsync(userId);
                 if (user != null && user.Role == "Admin")
                 {
-                    return (true, "L?y th�ng tin Admin th�nh c�ng", new UserProfileResponse
+                    return (true, "Lấy thông tin Admin thành công", new UserProfileResponse
                     {
                         FullName = string.IsNullOrEmpty(user.FullName) ? "Administrator" : user.FullName,
                         Email = user.Email,
                         Phone = user.Phone
                     });
                 }
-                return (false, "Kh�ng t�m th?y th�ng tin sinh vi�n", null);
+                return (false, "Không tìm thấy thông tin sinh viên", null);
             }
 
             var relative = student.Relatives.FirstOrDefault();
@@ -44,48 +44,48 @@ namespace BackendAPI.Services
                 Relationship = relative?.Relationship ?? string.Empty
             };
 
-            return (true, "L?y th�ng tin th�nh c�ng", data);
+            return (true, "Lấy thông tin thành công", data);
         }
 
         public async Task<(bool Success, string Message)> UpdateProfileAsync(int userId, UpdateProfileRequest request)
         {
             var user = await _profileRepo.GetUserByIdAsync(userId);
             if (user == null)
-                return (false, "Kh�ng t�m th?y th�ng tin t�i kho?n");
+                return (false, "Không tìm thấy thông tin tài khoản");
 
-            // Ki?m tra S?T tr�ng v?i ng??i kh�c trong h? th?ng (KH�NG t�nh b?n th�n m�nh)
+            // Kiểm tra SĐT trùng với người khác trong hệ thống (KHÔNG tính bản thân mình)
             var phoneExists = await _profileRepo.PhoneExistsAsync(request.Phone, userId);
             if (phoneExists)
-                return (false, "S? ?i?n tho?i ?� t?n t?i trong h? th?ng");
+                return (false, "Số điện thoại đã tồn tại trong hệ thống");
 
             if (user.Role == "Admin")
             {
                 user.Phone = request.Phone;
                 await _profileRepo.UpdateUserAsync(user);
-                return (true, "C?p nh?t th�ng tin Admin th�nh c�ng");
+                return (true, "Cập nhật thông tin Admin thành công");
             }
 
             var student = await _profileRepo.GetStudentByUserIdAsync(userId);
             if (student == null)
-                return (false, "Kh�ng t�m th?y th�ng tin sinh vi�n");
+                return (false, "Không tìm thấy thông tin sinh viên");
 
             // Validate student specific fields
             if (string.IsNullOrWhiteSpace(request.PermanentAddress))
-                return (false, "??a ch? th??ng tr� kh�ng ???c ?? tr?ng");
+                return (false, "Địa chỉ thường trú không được để trống");
             if (request.PermanentAddress.Length < 10)
-                return (false, "??a ch? th??ng tr� ph?i c� �t nh?t 10 k� t?");
+                return (false, "Địa chỉ thường trú phải có ít nhất 10 ký tự");
             if (string.IsNullOrWhiteSpace(request.RelativeName))
-                return (false, "H? t�n th�n nh�n kh�ng ???c ?? tr?ng");
+                return (false, "Họ tên thân nhân không được để trống");
             if (string.IsNullOrWhiteSpace(request.RelativePhone))
-                return (false, "S? ?i?n tho?i th�n nh�n kh�ng ???c ?? tr?ng");
+                return (false, "Số điện thoại thân nhân không được để trống");
             if (string.IsNullOrWhiteSpace(request.Relationship))
-                return (false, "M?i quan h? kh�ng ???c ?? tr?ng");
+                return (false, "Mối quan hệ không được để trống");
 
-            // C?p nh?t th�ng tin b?n th�n sinh vi�n
+            // Cập nhật thông tin bản thân sinh viên
             student.Phone = request.Phone;
             student.PermanentAddress = request.PermanentAddress;
 
-            // C?p nh?t th�ng tin th�n nh�n
+            // Cập nhật thông tin thân nhân
             var relative = student.Relatives.FirstOrDefault();
             
             if (relative == null)
@@ -112,22 +112,23 @@ namespace BackendAPI.Services
 
             await _profileRepo.UpdateStudentAsync(student);
 
-            return (true, "C?p nh?t th�ng tin th�nh c�ng");
+            return (true, "Cập nhật thông tin thành công");
         }
 
         public async Task<(bool Success, string Message)> ChangePasswordAsync(int userId, ChangePasswordRequest request)
         {
             var user = await _profileRepo.GetUserByIdAsync(userId);
             if (user == null)
-                return (false, "Kh�ng t�m th?y t�i kho?n");
+                return (false, "Không tìm thấy tài khoản");
 
             if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash))
-                return (false, "M?t kh?u c? kh�ng ch�nh x�c");
+                return (false, "Mật khẩu cũ không chính xác");
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.MustChangePassword = false;
             await _profileRepo.UpdateUserAsync(user);
 
-            return (true, "??i m?t kh?u th�nh c�ng");
+            return (true, "Đổi mật khẩu thành công");
         }
     }
 }
