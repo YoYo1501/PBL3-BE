@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.DTOs.Room;
+using BackendAPI.Models.DTOs.Room;
 using BackendAPI.Models.DTOs.RoomTransfer;
 using BackendAPI.Models.DTOs.RoomTransfer.Requests;
 using BackendAPI.Models.Entities;
@@ -173,6 +173,22 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
             ToRoomCode = r.ToRoom.RoomCode,
             Reason = r.Reason,
             Status = r.Status,
+            RejectionReason = r.RejectionReason,
+            RequestedAt = r.RequestedAt
+        }).ToList();
+    }
+
+    public async Task<List<RoomTransferResponseDto>> GetMyTransfersAsync(int studentId)
+    {
+        var list = await _repo.GetMyTransfersAsync(studentId);
+        return list.Select(r => new RoomTransferResponseDto
+        {
+            Id = r.Id,
+            FromRoomCode = r.FromRoom?.RoomCode ?? "",
+            ToRoomCode = r.ToRoom?.RoomCode ?? "",
+            Reason = r.Reason,
+            Status = r.Status,
+            RejectionReason = r.RejectionReason,
             RequestedAt = r.RequestedAt
         }).ToList();
     }

@@ -6,6 +6,44 @@ using System;
 
 namespace BackendAPI.Configurations;
 
+public static class SwaggerConfigurationExtensions
+{
+    public static IServiceCollection AddSwaggerConfigurationSetup(this IServiceCollection services)
+    {
+        services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Backend API", Version = "v1" });
+            c.SchemaFilter<SwaggerDefaultValues>(); // Đăng ký Swashbuckle schema filter
+            
+            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Chỉ dán token vào đây (KHÔNG cần 'Bearer')"
+            });
+            c.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
+
+        return services;
+    }
+}
+
 public class SwaggerDefaultValues : ISchemaFilter
 {
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)

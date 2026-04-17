@@ -1,4 +1,4 @@
-﻿namespace BackendAPI.Models.DTOs.RoomTransfer;
+namespace BackendAPI.Models.DTOs.RoomTransfer;
 
 public class RoomTransferResponseDto
 {
@@ -7,5 +7,6 @@ public class RoomTransferResponseDto
     public string ToRoomCode { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public string? RejectionReason { get; set; }
     public DateTime RequestedAt { get; set; }
 }

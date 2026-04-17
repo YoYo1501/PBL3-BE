@@ -1,4 +1,4 @@
-﻿using BackendAPI.Data;
+using BackendAPI.Data;
 using BackendAPI.Models.Entities;
 using BackendAPI.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -62,6 +62,14 @@ public class RoomTransferRepository : IRoomTransferRepository
             .Include(r => r.FromRoom)
             .Include(r => r.ToRoom)
             .Where(r => r.Status == "Pending")
+            .ToListAsync();
+
+    public async Task<List<RoomTransferRequest>> GetMyTransfersAsync(int studentId)
+        => await _context.RoomTransferRequests
+            .Include(r => r.FromRoom)
+            .Include(r => r.ToRoom)
+            .Where(r => r.StudentId == studentId)
+            .OrderByDescending(r => r.RequestedAt)
             .ToListAsync();
 
     public async Task UpdateRoomAsync(Room room)
