@@ -1,4 +1,4 @@
-﻿using BackendAPI.Data;
+using BackendAPI.Data;
 using BackendAPI.Models.Entities;
 using BackendAPI.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -43,10 +43,7 @@ public class InvoiceRepository(AppDbContext context) : IInvoiceRepository
         => await context.Invoices.AddAsync(invoice);
 
     public async Task<List<Invoice>> GetDraftInvoicesAsync(string period)
-        => await context.Invoices
-            .Include(i => i.Student)
-            .Include(i => i.Room)
-            .Where(i => i.Period == period && i.Status == "Draft")
+        => await BuildInvoiceQuery(period, "Draft")
             .ToListAsync();
 
     public async Task<List<Invoice>> GetMyInvoicesAsync(int studentId)
@@ -57,24 +54,45 @@ public class InvoiceRepository(AppDbContext context) : IInvoiceRepository
             .ToListAsync();
 
     public async Task<List<Invoice>> GetAllInvoicesAsync(string? period, string? status)
+        => await BuildInvoiceQuery(period, status)
+            .OrderByDescending(i => i.IssuedAt)
+            .ToListAsync();
+
+    public async Task<(List<Invoice> Items, int TotalCount)> GetPagedInvoicesAsync(string? period, string? status, int page, int pageSize)
+    {
+        var query = BuildInvoiceQuery(period, status);
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(i => i.IssuedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
+    public Task UpdateInvoiceAsync(Invoice invoice)
+    {
+        context.Invoices.Update(invoice);
+        return Task.CompletedTask;
+    }
+
+    public async Task SaveChangesAsync()
+        => await context.SaveChangesAsync();
+
+    private IQueryable<Invoice> BuildInvoiceQuery(string? period, string? status)
     {
         var query = context.Invoices
             .Include(i => i.Student)
             .Include(i => i.Room)
             .AsQueryable();
 
-        if (!string.IsNullOrEmpty(period))
+        if (!string.IsNullOrWhiteSpace(period))
             query = query.Where(i => i.Period == period);
 
-        if (!string.IsNullOrEmpty(status))
+        if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(i => i.Status == status);
 
-        return await query.OrderByDescending(i => i.IssuedAt).ToListAsync();
+        return query;
     }
-
-    public async Task UpdateInvoiceAsync(Invoice invoice)
-        => context.Invoices.Update(invoice);
-
-    public async Task SaveChangesAsync()
-        => await context.SaveChangesAsync();
 }

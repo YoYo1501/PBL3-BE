@@ -1,16 +1,25 @@
-using BackendAPI.Models.DTOs.Student.Requests;
+﻿using BackendAPI.Models.DTOs.Student.Requests;
 using BackendAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackendAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class StudentsController(IStudentService service) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] StudentListQueryDto query)
     {
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize") ||
+            Request.Query.ContainsKey("keyword") || Request.Query.ContainsKey("isActive"))
+        {
+            var paged = await service.GetPagedAsync(query);
+            return Ok(paged);
+        }
+
         var list = await service.GetAllAsync();
         return Ok(list);
     }

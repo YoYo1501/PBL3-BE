@@ -1,3 +1,5 @@
+using BackendAPI.Models.DTOs.Common;
+
 namespace BackendAPI.Models.DTOs.Notification.Requests;
 
 public class CreateNotificationDto
@@ -13,7 +15,7 @@ public class UpdateNotificationDto
     public string Message { get; set; } = string.Empty;
 }
 
-public class NotificationFilterDto
+public class NotificationFilterDto : PagedQueryDto
 {
     public string? SearchText { get; set; }
     public DateTime? FromDate { get; set; }

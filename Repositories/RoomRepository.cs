@@ -1,60 +1,89 @@
-﻿using BackendAPI.Data;
+using BackendAPI.Data;
 using BackendAPI.Models.Entities;
 using BackendAPI.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace BackendAPI.Repositories;
 
-public class RoomRepository : IRoomRepository
+public class RoomRepository(AppDbContext context) : IRoomRepository
 {
-    private readonly AppDbContext _context;
-
-    public RoomRepository(AppDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<List<Room>> GetAll()
-        => await _context.Rooms
+        => await context.Rooms
             .Include(r => r.Building)
             .ToListAsync();
 
-    public async Task<Room?> GetByIdAsync(int id) 
-        => await _context.Rooms
-            .Include(r => r.Building) // cần để check GenderAllowed
+    public async Task<(List<Room> Items, int TotalCount)> GetPagedAsync(string? keyword, string? status, int page, int pageSize)
+    {
+        var query = BuildQuery(keyword, status);
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderBy(r => r.Building.Code)
+            .ThenBy(r => r.RoomCode)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
+    public async Task<Room?> GetByIdAsync(int id)
+        => await context.Rooms
+            .Include(r => r.Building)
             .FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task<Room?> GetRoomByStudentIdAsync(int studentId)
     {
-        var contract = await _context.Contracts
+        var contract = await context.Contracts
             .FirstOrDefaultAsync(c => c.StudentId == studentId && c.Status == "Active" && c.EndDate >= DateTime.UtcNow);
         if (contract == null) return null;
-        
-        return await _context.Rooms
+
+        return await context.Rooms
             .Include(r => r.Building)
             .FirstOrDefaultAsync(r => r.Id == contract.RoomId);
     }
 
     public async Task AddAsync(Room room)
     {
-        await _context.Rooms.AddAsync(room);
-        await _context.SaveChangesAsync();
+        await context.Rooms.AddAsync(room);
+        await context.SaveChangesAsync();
     }
 
     public async Task Update(Room room)
     {
-        _context.Rooms.Update(room);
-        await _context.SaveChangesAsync();
+        context.Rooms.Update(room);
+        await context.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Room room)
     {
-        _context.Rooms.Remove(room);
-        await _context.SaveChangesAsync();
+        context.Rooms.Remove(room);
+        await context.SaveChangesAsync();
     }
 
     public async Task<bool> BuildingExistsAsync(int buildingId)
+        => await context.Buildings.AnyAsync(b => b.Id == buildingId);
+
+    private IQueryable<Room> BuildQuery(string? keyword, string? status)
     {
-        return await _context.Buildings.AnyAsync(b => b.Id == buildingId);
+        var query = context.Rooms
+            .Include(r => r.Building)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(r => r.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var normalizedKeyword = keyword.Trim();
+            query = query.Where(r =>
+                r.RoomCode.Contains(normalizedKeyword) ||
+                r.RoomType.Contains(normalizedKeyword) ||
+                r.Building.Name.Contains(normalizedKeyword) ||
+                r.Building.Code.Contains(normalizedKeyword));
+        }
+
+        return query;
     }
 }

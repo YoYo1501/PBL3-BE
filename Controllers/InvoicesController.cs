@@ -52,9 +52,15 @@ public class InvoicesController(IInvoiceService service) : ControllerBase
 
     [HttpGet]
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetAllInvoices([FromQuery] string? period, [FromQuery] string? status)
+    public async Task<IActionResult> GetAllInvoices([FromQuery] InvoiceListQueryDto query)
     {
-        var list = await service.GetAllInvoicesAsync(period, status);
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize"))
+        {
+            var paged = await service.GetPagedInvoicesAsync(query);
+            return Ok(paged);
+        }
+
+        var list = await service.GetAllInvoicesAsync(query.Period, query.Status);
         return Ok(list);
     }
 

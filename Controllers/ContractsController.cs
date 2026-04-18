@@ -1,4 +1,4 @@
-using BackendAPI.Models.DTOs.Contract.Requests;
+ï»¿using BackendAPI.Models.DTOs.Contract.Requests;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -65,8 +65,15 @@ public class ContractsController(IContractService service) : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetAllContracts()
+    public async Task<IActionResult> GetAllContracts([FromQuery] ContractListQueryDto query)
     {
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize") ||
+            Request.Query.ContainsKey("keyword") || Request.Query.ContainsKey("status"))
+        {
+            var paged = await service.GetPagedContractsAsync(query);
+            return Ok(paged);
+        }
+
         var list = await service.GetAllContractsAsync();
         return Ok(list);
     }
@@ -76,7 +83,7 @@ public class ContractsController(IContractService service) : ControllerBase
     public async Task<IActionResult> GetContractById(int id)
     {
         var contract = await service.GetContractByIdAsync(id);
-        if (contract == null) return NotFound(new { message = "H?p ??ng không t?n t?i." });
+        if (contract == null) return NotFound(new { message = "Hop dong khong ton tai." });
         return Ok(contract);
     }
 

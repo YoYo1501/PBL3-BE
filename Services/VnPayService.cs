@@ -23,6 +23,10 @@ public class VnPayService : IPaymentService
         var pay = new VnPayLibrary();
 
         var vnpReturnUrl = _configuration["VnPay:ReturnUrl"]!.Trim();
+        if (!string.IsNullOrWhiteSpace(model.ReturnPage))
+        {
+            vnpReturnUrl = $"{vnpReturnUrl}?returnPage={Uri.EscapeDataString(model.ReturnPage)}";
+        }
         var vnpHashSecret = _configuration["VnPay:HashSecret"]!.Trim();
         var vnpTmnCode = _configuration["VnPay:TmnCode"]!.Trim();
         var vnpBaseUrl = _configuration["VnPay:BaseUrl"]!.Trim();

@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.Entities;
+using BackendAPI.Models.Entities;
 
 namespace BackendAPI.Repositories.Interfaces;
 
@@ -13,6 +13,7 @@ public interface IContractRepository
     Task<RenewalRequest?> GetRenewalByIdAsync(int id);
     Task<List<RenewalRequest>> GetAllPendingRenewalsAsync();
     Task<List<Contract>> GetAllContractsAsync();
+    Task<(List<Contract> Items, int TotalCount)> GetPagedContractsAsync(string? keyword, string? status, int page, int pageSize);
     Task<Contract?> GetContractByIdAsync(int id);
     Task UpdateContractAsync(Contract contract);
     Task UpdateRenewalAsync(RenewalRequest request);

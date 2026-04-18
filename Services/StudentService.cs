@@ -1,4 +1,5 @@
-﻿using BackendAPI.Models.DTOs.Student.Requests;
+using BackendAPI.Models.DTOs.Common;
+using BackendAPI.Models.DTOs.Student.Requests;
 using BackendAPI.Models.DTOs.Student.Responses;
 using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
@@ -11,6 +12,22 @@ public class StudentService(IStudentRepository repo) : IStudentService
     {
         var students = await repo.GetAllAsync();
         return students.Select(ToDto).ToList();
+    }
+
+    public async Task<PagedResultDto<StudentResponseDto>> GetPagedAsync(StudentListQueryDto query)
+    {
+        var page = query.GetPage();
+        var pageSize = query.GetPageSize();
+        var (items, totalCount) = await repo.GetPagedAsync(query.Keyword, query.IsActive, page, pageSize);
+
+        return new PagedResultDto<StudentResponseDto>
+        {
+            Items = items.Select(ToDto).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalCount,
+            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize))
+        };
     }
 
     public async Task<(bool Success, string Message, StudentResponseDto? Data)> GetByIdAsync(int id)

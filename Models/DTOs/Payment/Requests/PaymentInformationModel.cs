@@ -7,4 +7,5 @@ public class PaymentInformationModel
     public string OrderDescription { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int InvoiceId { get; set; }
+    public string? ReturnPage { get; set; }
 }

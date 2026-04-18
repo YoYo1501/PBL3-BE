@@ -1,4 +1,4 @@
-using BackendAPI.Models.DTOs.Room;
+ï»¿using BackendAPI.Models.DTOs.Room;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,15 +15,22 @@ public class RoomController(IRoomService roomService) : ControllerBase
         var studentIdStr = User.FindFirstValue("StudentId");
         if (string.IsNullOrEmpty(studentIdStr))
         {
-            throw new UnauthorizedAccessException("Ng??i dùng ch?a ??ng nh?p ho?c không ph?i sinh viên");
+            throw new UnauthorizedAccessException("Nguoi dung chua dang nhap hoac khong phai sinh vien");
         }
         return int.Parse(studentIdStr);
     }
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAllRooms()
+    public async Task<IActionResult> GetAllRooms([FromQuery] RoomListQueryDto query)
     {
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize") ||
+            Request.Query.ContainsKey("keyword") || Request.Query.ContainsKey("status"))
+        {
+            var paged = await roomService.GetPagedRoomsAsync(query);
+            return Ok(paged);
+        }
+
         var rooms = await roomService.GetAllRooms();
         return Ok(rooms);
     }
@@ -41,7 +48,7 @@ public class RoomController(IRoomService roomService) : ControllerBase
     public async Task<IActionResult> GetRoomById(int id)
     {
         var room = await roomService.GetRoomByIdAsync(id);
-        if (room == null) return NotFound(new { message = "Phòng không t?n t?i" });
+        if (room == null) return NotFound(new { message = "Phong khong ton tai" });
         return Ok(room);
     }
 
@@ -51,9 +58,9 @@ public class RoomController(IRoomService roomService) : ControllerBase
     {
         var studentId = GetStudentId();
         var room = await roomService.GetMyRoomAsync(studentId);
-        
+
         if (room == null)
-            return NotFound(new { message = "B?n hi?n không có phòng nào ?ang có h?p ??ng l?u trú (Active)." });
+            return NotFound(new { message = "Ban hien khong co phong nao dang co hop dong luu tru (Active)." });
 
         return Ok(room);
     }

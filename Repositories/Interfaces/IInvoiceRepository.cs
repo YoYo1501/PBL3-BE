@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.Entities;
+using BackendAPI.Models.Entities;
 
 namespace BackendAPI.Repositories.Interfaces;
 
@@ -14,6 +14,7 @@ public interface IInvoiceRepository
     Task<List<Invoice>> GetDraftInvoicesAsync(string period);
     Task<List<Invoice>> GetMyInvoicesAsync(int studentId);
     Task<List<Invoice>> GetAllInvoicesAsync(string? period, string? status);
+    Task<(List<Invoice> Items, int TotalCount)> GetPagedInvoicesAsync(string? period, string? status, int page, int pageSize);
     Task UpdateInvoiceAsync(Invoice invoice);
     Task SaveChangesAsync();
 }
