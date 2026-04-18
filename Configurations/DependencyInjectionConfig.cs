@@ -27,7 +27,7 @@ namespace BackendAPI.Configurations
 
             // Services
             services.AddHttpClient();
-            services.AddScoped<IOcrService, FptOcrService>();
+            services.AddScoped<IOcrService, TesseractOcrService>();
             services.AddScoped<IRoomService, RoomService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRegistrationService, RegistrationService>();
