@@ -1,4 +1,5 @@
-using BackendAPI.Exceptions;
+ï»¿using BackendAPI.Exceptions;
+using BackendAPI.Models.DTOs.Common;
 using BackendAPI.Models.DTOs.Notification.Requests;
 using BackendAPI.Models.DTOs.Notification.Responses;
 using BackendAPI.Models.Entities;
@@ -7,16 +8,16 @@ using BackendAPI.Services.Interfaces;
 
 namespace BackendAPI.Services;
 
-public class NotificationService(INotificationRepository _repo) : INotificationService
+public class NotificationService(INotificationRepository repo) : INotificationService
 {
-    private NotificationResponseDto ToDto(Notification n) => new()
+    private static NotificationResponseDto ToDto(Notification notification) => new()
     {
-        Id = n.Id,
-        UserId = n.UserId,
-        Title = n.Title,
-        Message = n.Message,
-        IsRead = n.IsRead,
-        CreatedAt = n.CreatedAt
+        Id = notification.Id,
+        UserId = notification.UserId,
+        Title = notification.Title,
+        Message = notification.Message,
+        IsRead = notification.IsRead,
+        CreatedAt = notification.CreatedAt
     };
 
     public async Task<(bool Success, string Message, NotificationResponseDto? Data)> CreateAsync(CreateNotificationDto dto)
@@ -30,59 +31,75 @@ public class NotificationService(INotificationRepository _repo) : INotificationS
             IsRead = false
         };
 
-        await _repo.AddAsync(entity);
-        await _repo.SaveChangesAsync();
+        await repo.AddAsync(entity);
+        await repo.SaveChangesAsync();
 
-        return (true, "T?o thông báo thành công", ToDto(entity));
+        return (true, "Tao thong bao thanh cong", ToDto(entity));
     }
 
     public async Task<(bool Success, string Message, NotificationResponseDto? Data)> UpdateAsync(int id, UpdateNotificationDto dto)
     {
-        var existing = await _repo.GetByIdAsync(id);
-        if (existing == null) throw new BadRequestException("Thông báo không t?n t?i");
+        var existing = await repo.GetByIdAsync(id);
+        if (existing == null) throw new BadRequestException("Thong bao khong ton tai");
 
         existing.Title = dto.Title;
         existing.Message = dto.Message;
 
-        _repo.Update(existing);
-        await _repo.SaveChangesAsync();
+        repo.Update(existing);
+        await repo.SaveChangesAsync();
 
-        return (true, "C?p nh?t thông báo thành công", ToDto(existing));
+        return (true, "Cap nhat thong bao thanh cong", ToDto(existing));
     }
 
     public async Task<(bool Success, string Message)> DeleteAsync(int id)
     {
-        var existing = await _repo.GetByIdAsync(id);
-        if (existing == null) throw new BadRequestException("Thông báo không t?n t?i");
+        var existing = await repo.GetByIdAsync(id);
+        if (existing == null) throw new BadRequestException("Thong bao khong ton tai");
 
-        _repo.Delete(existing);
-        await _repo.SaveChangesAsync();
+        repo.Delete(existing);
+        await repo.SaveChangesAsync();
 
-        return (true, "Xóa thông báo thành công");
+        return (true, "Xoa thong bao thanh cong");
     }
 
     public async Task<List<NotificationResponseDto>> GetAllAsync(NotificationFilterDto filter)
     {
-        var list = await _repo.GetAllAsync(filter.SearchText, filter.FromDate, filter.ToDate);
+        var list = await repo.GetAllAsync(filter.SearchText, filter.FromDate, filter.ToDate);
         return list.Select(ToDto).ToList();
+    }
+
+    public async Task<PagedResultDto<NotificationResponseDto>> GetPagedAsync(NotificationFilterDto filter)
+    {
+        var page = filter.GetPage();
+        var pageSize = filter.GetPageSize(8);
+        var (items, totalCount) = await repo.GetPagedAsync(filter.SearchText, filter.FromDate, filter.ToDate, page, pageSize);
+
+        return new PagedResultDto<NotificationResponseDto>
+        {
+            Items = items.Select(ToDto).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        };
     }
 
     public async Task<List<NotificationResponseDto>> GetMyNotificationsAsync(int userId)
     {
-        var list = await _repo.GetByUserIdAsync(userId);
+        var list = await repo.GetByUserIdAsync(userId);
         return list.Select(ToDto).ToList();
     }
 
     public async Task<(bool Success, string Message)> MarkAsReadAsync(int id, int userId)
     {
-        var existing = await _repo.GetByIdAsync(id);
+        var existing = await repo.GetByIdAsync(id);
         if (existing == null || existing.UserId != userId)
-            throw new BadRequestException("Thông báo không thu?c v? b?n ho?c không t?n t?i");
+            throw new BadRequestException("Thong bao khong thuoc ve ban hoac khong ton tai");
 
         existing.IsRead = true;
-        _repo.Update(existing);
-        await _repo.SaveChangesAsync();
+        repo.Update(existing);
+        await repo.SaveChangesAsync();
 
-        return (true, "?ã ?ánh d?u ?ã ??c");
+        return (true, "Da danh dau da doc");
     }
 }

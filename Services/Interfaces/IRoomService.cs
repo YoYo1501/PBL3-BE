@@ -1,10 +1,12 @@
-﻿using BackendAPI.Models.DTOs.Room;
+using BackendAPI.Models.DTOs.Common;
+using BackendAPI.Models.DTOs.Room;
 
 namespace BackendAPI.Services.Interfaces;
 
 public interface IRoomService
 {
     Task<List<RoomDto>> GetAllRooms();
+    Task<PagedResultDto<RoomDto>> GetPagedRoomsAsync(RoomListQueryDto query);
     Task<List<RoomDto>> GetAvailableRooms();
     Task<RoomDto?> GetRoomByIdAsync(int id);
     Task<RoomDto?> GetMyRoomAsync(int studentId);

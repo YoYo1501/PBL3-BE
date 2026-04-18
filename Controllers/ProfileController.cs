@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using BackendAPI.Models.DTOs.Profile.Requests;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -16,7 +16,7 @@ namespace BackendAPI.Controllers
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr))
             {
-                throw new UnauthorizedAccessException("Ng??i d�ng ch?a ??ng nh?p");
+                throw new UnauthorizedAccessException("Người dùng chưa đăng nhập");
             }
             return int.Parse(userIdStr);
         }

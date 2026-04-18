@@ -66,4 +66,9 @@ using (var scope = app.Services.CreateScope())
     await SeedData.SeedAsync(context);
 }
 
+if (args.Contains("--seed-only", StringComparer.OrdinalIgnoreCase))
+{
+    return;
+}
+
 app.Run();

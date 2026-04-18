@@ -1,4 +1,5 @@
-﻿using BackendAPI.Models.DTOs.Invoice.Requests;
+using BackendAPI.Models.DTOs.Common;
+using BackendAPI.Models.DTOs.Invoice.Requests;
 using BackendAPI.Models.DTOs.Invoice.Responses;
 using Microsoft.AspNetCore.Http;
 
@@ -13,6 +14,7 @@ public interface IInvoiceService
     Task<List<InvoiceDraftDto>> GetMyInvoicesAsync(int studentId);
     Task<byte[]> ExportInvoicesAsync(string period);
     Task<List<InvoiceDraftDto>> GetAllInvoicesAsync(string? period, string? status);
+    Task<PagedResultDto<InvoiceDraftDto>> GetPagedInvoicesAsync(InvoiceListQueryDto query);
     Task<InvoiceDraftDto?> GetInvoiceByIdAsync(int id);
     Task<(bool Success, string Message)> PayInvoiceManuallyAsync(int id);
     Task<(bool Success, string Message)> RemindDebtAsync(string? period);

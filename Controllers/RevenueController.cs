@@ -1,4 +1,4 @@
-using BackendAPI.Models.DTOs.Revenue.Requests;
+ï»¿using BackendAPI.Models.DTOs.Revenue.Requests;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +8,7 @@ namespace BackendAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 
 public class RevenueController(IRevenueService service) : ControllerBase
 {
@@ -24,9 +25,10 @@ public class RevenueController(IRevenueService service) : ControllerBase
     {
         var fileContent = await service.ExportToExcelAsync(filter);
         if (fileContent == null || fileContent.Length == 0)
-            return BadRequest(new { message = "Không có d? li?u d? xu?t." });
+            return BadRequest(new { message = "KhÃ´ng cÃ³ d? li?u d? xu?t." });
 
         var fileName = $"DoanhThu_{filter.StartDate:yyyyMMdd}_{filter.EndDate:yyyyMMdd}.xlsx";
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 }
+

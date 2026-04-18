@@ -1,4 +1,5 @@
-﻿using BackendAPI.Models.DTOs.Invoice.Requests;
+using BackendAPI.Models.DTOs.Common;
+using BackendAPI.Models.DTOs.Invoice.Requests;
 using BackendAPI.Models.DTOs.Invoice.Responses;
 using BackendAPI.Models.Entities;
 using BackendAPI.Repositories.Interfaces;
@@ -158,19 +159,7 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
     public async Task<List<InvoiceDraftDto>> GetDraftInvoicesAsync(string period)
     {
         var list = await repo.GetDraftInvoicesAsync(period);
-        return list.Select(i => new InvoiceDraftDto
-        {
-            Id = i.Id,
-            StudentName = i.Student.FullName,
-            RoomCode = i.Room.RoomCode,
-            Period = i.Period,
-            RoomFee = i.RoomFee,
-            ElectricFee = i.ElectricFee,
-            WaterFee = i.WaterFee,
-            TotalAmount = i.TotalAmount,
-            Status = i.Status,
-            IssuedAt = i.IssuedAt
-        }).ToList();
+        return list.Select(ToDto).ToList();
     }
 
     public async Task<(bool Success, string Message)> PublishInvoicesAsync(string period)
@@ -235,7 +224,7 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
             range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
         }
 
-        int row = 2;
+        var row = 2;
         foreach (var invoice in invoices)
         {
             worksheet.Cells[row, 1].Value = invoice.Period;
@@ -247,50 +236,39 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
             worksheet.Cells[row, 7].Value = invoice.TotalAmount;
             worksheet.Cells[row, 8].Value = invoice.Status == "Paid" ? "Đã thanh toán" : "Chưa thanh toán";
             worksheet.Cells[row, 9].Value = invoice.IssuedAt.ToString("dd/MM/yyyy HH:mm:ss");
-
             row++;
         }
-        worksheet.Cells.AutoFitColumns();
 
+        worksheet.Cells.AutoFitColumns();
         return package.GetAsByteArray();
     }
 
     public async Task<List<InvoiceDraftDto>> GetAllInvoicesAsync(string? period, string? status)
     {
         var invoices = await repo.GetAllInvoicesAsync(period, status);
-        return invoices.Select(i => new InvoiceDraftDto
+        return invoices.Select(ToDto).ToList();
+    }
+
+    public async Task<PagedResultDto<InvoiceDraftDto>> GetPagedInvoicesAsync(InvoiceListQueryDto query)
+    {
+        var page = query.GetPage();
+        var pageSize = query.GetPageSize();
+        var (items, totalCount) = await repo.GetPagedInvoicesAsync(query.Period, query.Status, page, pageSize);
+
+        return new PagedResultDto<InvoiceDraftDto>
         {
-            Id = i.Id,
-            StudentName = i.Student?.FullName ?? "",
-            RoomCode = i.Room?.RoomCode ?? "",
-            Period = i.Period,
-            RoomFee = i.RoomFee,
-            ElectricFee = i.ElectricFee,
-            WaterFee = i.WaterFee,
-            TotalAmount = i.TotalAmount,
-            Status = i.Status,
-            IssuedAt = i.IssuedAt
-        }).ToList();
+            Items = items.Select(ToDto).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalCount,
+            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize))
+        };
     }
 
     public async Task<InvoiceDraftDto?> GetInvoiceByIdAsync(int id)
     {
         var invoice = await repo.GetInvoiceByIdAsync(id);
-        if (invoice == null) return null;
-
-        return new InvoiceDraftDto
-        {
-            Id = invoice.Id,
-            StudentName = invoice.Student?.FullName ?? "",
-            RoomCode = invoice.Room?.RoomCode ?? "",
-            Period = invoice.Period,
-            RoomFee = invoice.RoomFee,
-            ElectricFee = invoice.ElectricFee,
-            WaterFee = invoice.WaterFee,
-            TotalAmount = invoice.TotalAmount,
-            Status = invoice.Status,
-            IssuedAt = invoice.IssuedAt
-        };
+        return invoice == null ? null : ToDto(invoice);
     }
 
     public async Task<(bool Success, string Message)> PayInvoiceManuallyAsync(int id)
@@ -303,7 +281,6 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
             return (false, "Hóa đơn đã được thanh toán.");
 
         invoice.Status = "Paid";
-        // Do not have a PaidDate field currently, maybe just save it
         await repo.UpdateInvoiceAsync(invoice);
         await repo.SaveChangesAsync();
 
@@ -316,7 +293,7 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         if (!invoices.Any())
             return (false, "Không có hóa đơn nào chưa thanh toán để nhắc nợ.");
 
-        int count = 0;
+        var count = 0;
         foreach (var i in invoices)
         {
             if (i.Student?.UserId != null)
@@ -330,7 +307,21 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
                 count++;
             }
         }
-        
+
         return (true, $"Đã gửi thông báo nhắc nợ thành công cho {count} sinh viên.");
     }
+
+    private static InvoiceDraftDto ToDto(Invoice i) => new()
+    {
+        Id = i.Id,
+        StudentName = i.Student?.FullName ?? "",
+        RoomCode = i.Room?.RoomCode ?? "",
+        Period = i.Period,
+        RoomFee = i.RoomFee,
+        ElectricFee = i.ElectricFee,
+        WaterFee = i.WaterFee,
+        TotalAmount = i.TotalAmount,
+        Status = i.Status,
+        IssuedAt = i.IssuedAt
+    };
 }
