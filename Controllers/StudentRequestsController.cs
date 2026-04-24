@@ -43,9 +43,15 @@ public class StudentRequestsController(IStudentRequestService _service) : Contro
 
     [HttpGet]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetAllRequests([FromQuery] string? status, [FromQuery] string? requestType)
+    public async Task<IActionResult> GetAllRequests([FromQuery] StudentRequestListQueryDto query)
     {
-        var data = await _service.GetAllRequestsAsync(status, requestType);
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize"))
+        {
+            var paged = await _service.GetPagedRequestsAsync(query);
+            return Ok(paged);
+        }
+
+        var data = await _service.GetAllRequestsAsync(query.Status, query.RequestType);
         return Ok(data);
     }
 

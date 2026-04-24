@@ -26,6 +26,12 @@ public class InvoiceRepository(AppDbContext context) : IInvoiceRepository
                 && c.EndDate >= DateTime.UtcNow)
             .ToListAsync();
 
+    public async Task<bool> InvoiceExistsAsync(int studentId, int roomId, string period)
+        => await context.Invoices
+            .AnyAsync(i => i.StudentId == studentId
+                && i.RoomId == roomId
+                && i.Period == period);
+
     public async Task<bool> PeriodAlreadyImportedAsync(int roomId, string period)
         => await context.ElectricWaterReadings
             .AnyAsync(e => e.RoomId == roomId && e.Period == period);

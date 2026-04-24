@@ -64,16 +64,22 @@ public class RoomTransfersController(IRoomTransferService _service) : Controller
         return Ok(new { message });
     }
 
-    // GET /api/roomtransfers/pending � admin xem danh s�ch ch? duy?t
+    // GET /api/roomtransfers/pending admin xem danh sách yêu cầu chờ duyệt
     [HttpGet("pending")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetAllPending()
+    public async Task<IActionResult> GetAllPending([FromQuery] RoomTransferPendingQueryDto query)
     {
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize"))
+        {
+            var paged = await _service.GetPagedPendingAsync(query);
+            return Ok(paged);
+        }
+
         var list = await _service.GetAllPendingAsync();
         return Ok(list);
     }
 
-    // PUT /api/roomtransfers/{id}/approve � admin duy?t/t?i
+    // PUT /api/roomtransfers/{id}/approve admin duyệt hoặc từ chối yêu cầu chuyển phòng
     [HttpPut("{id}/approve")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Approve(int id, [FromBody] ApproveTransfer dto)

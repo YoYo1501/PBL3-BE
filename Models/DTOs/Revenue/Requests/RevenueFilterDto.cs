@@ -1,6 +1,8 @@
-﻿namespace BackendAPI.Models.DTOs.Revenue.Requests;
+using BackendAPI.Models.DTOs.Common;
 
-public class RevenueFilterDto
+namespace BackendAPI.Models.DTOs.Revenue.Requests;
+
+public class RevenueFilterDto : PagedQueryDto
 {
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }

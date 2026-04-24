@@ -7,6 +7,7 @@ public interface IInvoiceRepository
     Task<Invoice?> GetInvoiceByIdAsync(int invoiceId);
     Task<Room?> GetRoomByCodeAsync(string roomCode);
     Task<List<Contract>> GetActiveContractsByRoomAsync(int roomId);
+    Task<bool> InvoiceExistsAsync(int studentId, int roomId, string period);
     Task<bool> PeriodAlreadyImportedAsync(int roomId, string period);
     Task<List<ElectricWaterReading>> GetReadingsByPeriodAsync(string period);
     Task AddReadingAsync(ElectricWaterReading reading);

@@ -6,6 +6,7 @@ using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
+using System.Text.RegularExpressions;
 
 namespace BackendAPI.Services;
 
@@ -13,11 +14,16 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
 {
     public async Task<(bool Success, string Message, List<ImportResultDto>? Preview)> ImportExcelAsync(IFormFile file, string period)
     {
+        period = NormalizePeriod(period);
+
         if (file == null || file.Length == 0)
             return (false, "Vui lòng chọn file Excel.", null);
 
-        if (!file.FileName.EndsWith(".xlsx"))
+        if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
             return (false, "Chỉ chấp nhận file .xlsx.", null);
+
+        if (!IsValidPeriod(period))
+            return (false, "Kỳ hóa đơn không hợp lệ. Vui lòng dùng định dạng yyyy-MM.", null);
 
         var results = new List<ImportResultDto>();
         var errors = new List<string>();
@@ -50,7 +56,7 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
 
             if (newElectric < oldElectric || newWater < oldWater)
             {
-                errors.Add($"Dòng {row}: Chỉ số mới phải lớn hơn chỉ số cũ (phòng {roomCode}).");
+                errors.Add($"Dòng {row}: Chỉ số mới phải lớn hơn hoặc bằng chỉ số cũ (phòng {roomCode}).");
                 continue;
             }
 
@@ -88,6 +94,9 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
             });
         }
 
+        if (!results.Any() && errors.Any())
+            return (false, string.Join("\n", errors), null);
+
         await repo.SaveChangesAsync();
 
         if (errors.Any())
@@ -98,14 +107,23 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
 
     public async Task<(bool Success, string Message, List<InvoiceDraftDto>? Drafts)> GenerateInvoicesAsync(InvoiceSettingDto dto)
     {
+        dto.Period = NormalizePeriod(dto.Period);
+
         if (string.IsNullOrEmpty(dto.Period))
             return (false, "Vui lòng nhập kỳ hóa đơn.", null);
+
+        if (!IsValidPeriod(dto.Period))
+            return (false, "Kỳ hóa đơn không hợp lệ. Vui lòng dùng định dạng yyyy-MM.", null);
+
+        if (dto.ElectricPricePerKwh <= 0 || dto.WaterPricePerM3 <= 0)
+            return (false, "Giá điện và giá nước phải lớn hơn 0.", null);
 
         var readings = await repo.GetReadingsByPeriodAsync(dto.Period);
         if (!readings.Any())
             return (false, $"Không có dữ liệu điện nước cho kỳ {dto.Period}.", null);
 
         var drafts = new List<InvoiceDraftDto>();
+        var skippedExistingInvoices = 0;
 
         foreach (var reading in readings)
         {
@@ -120,6 +138,12 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
 
             foreach (var contract in contracts)
             {
+                if (await repo.InvoiceExistsAsync(contract.StudentId, reading.RoomId, dto.Period))
+                {
+                    skippedExistingInvoices++;
+                    continue;
+                }
+
                 var electricFee = totalElectricFee / studentCount;
                 var waterFee = totalWaterFee / studentCount;
                 var roomFee = contract.Price;
@@ -152,18 +176,39 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
             }
         }
 
+        if (!drafts.Any())
+        {
+            if (skippedExistingInvoices > 0)
+                return (false, $"Kỳ {dto.Period} đã có hóa đơn, hệ thống không tạo thêm để tránh trùng lặp.", null);
+
+            return (false, $"Không có hợp đồng hiệu lực để tạo hóa đơn cho kỳ {dto.Period}.", null);
+        }
+
         await repo.SaveChangesAsync();
-        return (true, $"Tạo {drafts.Count} hóa đơn dự thảo thành công.", drafts);
+
+        var message = $"Tạo {drafts.Count} hóa đơn dự thảo thành công.";
+        if (skippedExistingInvoices > 0)
+            message += $" Bỏ qua {skippedExistingInvoices} hóa đơn đã tồn tại.";
+
+        return (true, message, drafts);
     }
 
     public async Task<List<InvoiceDraftDto>> GetDraftInvoicesAsync(string period)
     {
+        period = NormalizePeriod(period);
+        if (!IsValidPeriod(period))
+            return [];
+
         var list = await repo.GetDraftInvoicesAsync(period);
         return list.Select(ToDto).ToList();
     }
 
     public async Task<(bool Success, string Message)> PublishInvoicesAsync(string period)
     {
+        period = NormalizePeriod(period);
+        if (!IsValidPeriod(period))
+            return (false, "Kỳ hóa đơn không hợp lệ. Vui lòng dùng định dạng yyyy-MM.");
+
         var drafts = await repo.GetDraftInvoicesAsync(period);
         if (!drafts.Any())
             return (false, $"Không có hóa đơn dự thảo cho kỳ {period}.");
@@ -199,6 +244,10 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
 
     public async Task<byte[]> ExportInvoicesAsync(string period)
     {
+        period = NormalizePeriod(period);
+        if (!IsValidPeriod(period))
+            return Array.Empty<byte>();
+
         var invoices = await repo.GetAllInvoicesAsync(period, null);
         if (!invoices.Any())
             return Array.Empty<byte>();
@@ -234,7 +283,7 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
             worksheet.Cells[row, 5].Value = invoice.ElectricFee;
             worksheet.Cells[row, 6].Value = invoice.WaterFee;
             worksheet.Cells[row, 7].Value = invoice.TotalAmount;
-            worksheet.Cells[row, 8].Value = invoice.Status == "Paid" ? "Đã thanh toán" : "Chưa thanh toán";
+            worksheet.Cells[row, 8].Value = GetInvoiceStatusLabel(invoice.Status);
             worksheet.Cells[row, 9].Value = invoice.IssuedAt.ToString("dd/MM/yyyy HH:mm:ss");
             row++;
         }
@@ -245,12 +294,15 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
 
     public async Task<List<InvoiceDraftDto>> GetAllInvoicesAsync(string? period, string? status)
     {
+        period = NormalizePeriod(period);
         var invoices = await repo.GetAllInvoicesAsync(period, status);
         return invoices.Select(ToDto).ToList();
     }
 
     public async Task<PagedResultDto<InvoiceDraftDto>> GetPagedInvoicesAsync(InvoiceListQueryDto query)
     {
+        query.Period = NormalizePeriod(query.Period);
+
         var page = query.GetPage();
         var pageSize = query.GetPageSize();
         var (items, totalCount) = await repo.GetPagedInvoicesAsync(query.Period, query.Status, page, pageSize);
@@ -280,6 +332,9 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         if (invoice.Status == "Paid")
             return (false, "Hóa đơn đã được thanh toán.");
 
+        if (invoice.Status != "Unpaid")
+            return (false, "Chỉ có thể thu tiền hóa đơn đã phát hành và chưa thanh toán.");
+
         invoice.Status = "Paid";
         await repo.UpdateInvoiceAsync(invoice);
         await repo.SaveChangesAsync();
@@ -289,6 +344,10 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
 
     public async Task<(bool Success, string Message)> RemindDebtAsync(string? period)
     {
+        period = NormalizePeriod(period);
+        if (!string.IsNullOrEmpty(period) && !IsValidPeriod(period))
+            return (false, "Kỳ hóa đơn không hợp lệ. Vui lòng dùng định dạng yyyy-MM.");
+
         var invoices = await repo.GetAllInvoicesAsync(period, "Unpaid");
         if (!invoices.Any())
             return (false, "Không có hóa đơn nào chưa thanh toán để nhắc nợ.");
@@ -302,7 +361,7 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
                 {
                     UserId = i.Student.UserId,
                     Title = "Thông báo nhắc nợ hóa đơn",
-                    Message = $"Bạn có hóa đơn chưa thanh toán cho kỳ {i.Period}. Tổng số tiền là {i.TotalAmount:N0} VNĐ. Vui lòng thanh toán sớm!"
+                    Message = $"Bạn có hóa đơn chưa thanh toán cho kỳ {i.Period}. Tổng số tiền là {i.TotalAmount:N0} VND. Vui lòng thanh toán sớm!"
                 });
                 count++;
             }
@@ -323,5 +382,19 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         TotalAmount = i.TotalAmount,
         Status = i.Status,
         IssuedAt = i.IssuedAt
+    };
+
+    private static string NormalizePeriod(string? period)
+        => string.IsNullOrWhiteSpace(period) ? string.Empty : period.Trim();
+
+    private static bool IsValidPeriod(string period)
+        => Regex.IsMatch(period, @"^\d{4}-(0[1-9]|1[0-2])$");
+
+    private static string GetInvoiceStatusLabel(string? status) => status switch
+    {
+        "Paid" => "Đã thanh toán",
+        "Unpaid" => "Chưa thanh toán",
+        "Draft" => "Nháp",
+        _ => status ?? string.Empty
     };
 }

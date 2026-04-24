@@ -52,6 +52,25 @@ public class ContractRepository(AppDbContext context) : IContractRepository
             .Where(r => r.Status == "Pending")
             .ToListAsync();
 
+    public async Task<(List<RenewalRequest> Items, int TotalCount)> GetPagedPendingRenewalsAsync(int page, int pageSize)
+    {
+        var query = context.RenewalRequests
+            .Include(r => r.Student)
+            .Include(r => r.Contract)
+                .ThenInclude(c => c.Room)
+            .Include(r => r.RenewalPackage)
+            .Where(r => r.Status == "Pending");
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(r => r.RequestedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task<List<Contract>> GetAllContractsAsync()
         => await BuildContractQuery(null, null)
             .OrderByDescending(c => c.StartDate)

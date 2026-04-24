@@ -49,8 +49,14 @@ public class RegistrationsController(IRegistrationService service, IOcrService o
 
     [HttpGet("pending")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetPending()
+    public async Task<IActionResult> GetPending([FromQuery] RegistrationListQueryDto query)
     {
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize"))
+        {
+            var paged = await service.GetPagedPendingAsync(query);
+            return Ok(paged);
+        }
+
         var list = await service.GetPendingAsync();
         return Ok(list);
     }

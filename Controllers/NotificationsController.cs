@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.DTOs.Notification.Requests;
+using BackendAPI.Models.DTOs.Notification.Requests;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -61,9 +61,15 @@ public class NotificationsController(INotificationService service) : ControllerB
     }
 
     [HttpGet("my")]
-    public async Task<IActionResult> GetMyNotifications()
+    public async Task<IActionResult> GetMyNotifications([FromQuery] NotificationFilterDto filter)
     {
         var userId = GetUserId();
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize"))
+        {
+            var paged = await service.GetMyPagedNotificationsAsync(userId, filter);
+            return Ok(paged);
+        }
+
         var data = await service.GetMyNotificationsAsync(userId);
         return Ok(data);
     }

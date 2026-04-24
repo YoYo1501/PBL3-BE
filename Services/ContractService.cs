@@ -7,7 +7,7 @@ using BackendAPI.Services.Interfaces;
 
 namespace BackendAPI.Services;
 
-public class ContractService(IContractRepository repo) : IContractService
+public class ContractService(IContractRepository repo, INotificationService notificationService) : IContractService
 {
     public async Task<(bool Success, string Message, ContractResponseDto? Data)> GetMyContractAsync(int studentId)
     {
@@ -69,6 +69,10 @@ public class ContractService(IContractRepository repo) : IContractService
 
         await repo.AddRenewalRequestAsync(request);
         await repo.SaveChangesAsync();
+        await notificationService.CreateForAdminsAsync(
+            "Yeu cau gia han hop dong moi",
+            $"Sinh vien #{studentId} vua gui yeu cau gia han cho hop dong {contract.ContractCode}."
+        );
 
         return (true, "Gửi yêu cầu gia hạn thành công! Vui lòng chờ admin duyệt.");
     }
@@ -84,6 +88,29 @@ public class ContractService(IContractRepository repo) : IContractService
             Status = r.Status,
             RequestedAt = r.RequestedAt
         }).ToList();
+    }
+
+    public async Task<PagedResultDto<RenewalResponseDto>> GetPagedPendingRenewalsAsync(RenewalListQueryDto query)
+    {
+        var page = query.GetPage();
+        var pageSize = query.GetPageSize(5);
+        var (items, totalCount) = await repo.GetPagedPendingRenewalsAsync(page, pageSize);
+
+        return new PagedResultDto<RenewalResponseDto>
+        {
+            Items = items.Select(r => new RenewalResponseDto
+            {
+                Id = r.Id,
+                ContractCode = r.Contract.ContractCode,
+                PackageName = r.RenewalPackage.Name,
+                Status = r.Status,
+                RequestedAt = r.RequestedAt
+            }).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalCount,
+            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize))
+        };
     }
 
     public async Task<(bool Success, string Message)> ApproveRenewalAsync(int requestId, ApproveRenewalDto dto)

@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.DTOs.Revenue.Requests;
+using BackendAPI.Models.DTOs.Revenue.Requests;
 using BackendAPI.Models.DTOs.Revenue.Responses;
 
 namespace BackendAPI.Services.Interfaces;

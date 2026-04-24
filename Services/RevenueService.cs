@@ -1,4 +1,5 @@
-﻿using BackendAPI.Models.DTOs.Revenue.Requests;
+using BackendAPI.Models.DTOs.Common;
+using BackendAPI.Models.DTOs.Revenue.Requests;
 using BackendAPI.Models.DTOs.Revenue.Responses;
 using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
@@ -25,6 +26,30 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
         if (!invoices.Any())
             return (false, "Không có dữ liệu doanh thu trong khoảng thời gian này.", null);
 
+        var details = invoices.Select(i => new RevenueDetailDto
+        {
+            Period = i.Period,
+            RoomCode = i.Room.RoomCode,
+            StudentName = i.Student.FullName,
+            RoomFee = i.RoomFee,
+            ElectricFee = i.ElectricFee,
+            WaterFee = i.WaterFee,
+            TotalAmount = i.TotalAmount,
+            Status = i.Status,
+            IssuedAt = i.IssuedAt
+        }).ToList();
+
+        var page = filter.GetPage();
+        var pageSize = filter.GetPageSize(8);
+        var totalItems = details.Count;
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
+        if (page > totalPages) page = totalPages;
+
+        var pagedDetails = details
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
         var result = new RevenueResponseDto
         {
             TotalRoomFee = invoices.Sum(i => i.RoomFee),
@@ -34,18 +59,14 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
             TotalInvoices = invoices.Count,
             PaidInvoices = invoices.Count(i => i.Status == "Paid"),
             UnpaidInvoices = invoices.Count(i => i.Status == "Unpaid"),
-            Details = invoices.Select(i => new RevenueDetailDto
+            Details = new PagedResultDto<RevenueDetailDto>
             {
-                Period = i.Period,
-                RoomCode = i.Room.RoomCode,
-                StudentName = i.Student.FullName,
-                RoomFee = i.RoomFee,
-                ElectricFee = i.ElectricFee,
-                WaterFee = i.WaterFee,
-                TotalAmount = i.TotalAmount,
-                Status = i.Status,
-                IssuedAt = i.IssuedAt
-            }).ToList()
+                Items = pagedDetails,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            }
         };
 
         return (true, "Lấy thống kê doanh thu thành công.", result);
@@ -53,16 +74,38 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
 
     public async Task<byte[]> ExportToExcelAsync(RevenueFilterDto filter)
     {
-        var (success, _, data) = await GetRevenueAsync(filter);
-        if (!success || data == null || !data.Details.Any())
+        var invoices = await repo.GetInvoicesAsync(
+            filter.StartDate,
+            filter.EndDate,
+            filter.RoomCode,
+            filter.Period);
+
+        if (!invoices.Any())
             return Array.Empty<byte>();
+
+        var details = invoices.Select(i => new RevenueDetailDto
+        {
+            Period = i.Period,
+            RoomCode = i.Room.RoomCode,
+            StudentName = i.Student.FullName,
+            RoomFee = i.RoomFee,
+            ElectricFee = i.ElectricFee,
+            WaterFee = i.WaterFee,
+            TotalAmount = i.TotalAmount,
+            Status = i.Status,
+            IssuedAt = i.IssuedAt
+        }).ToList();
+
+        var totalRoomFee = invoices.Sum(i => i.RoomFee);
+        var totalElectricFee = invoices.Sum(i => i.ElectricFee);
+        var totalWaterFee = invoices.Sum(i => i.WaterFee);
+        var grandTotal = invoices.Sum(i => i.TotalAmount);
 
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         using var package = new ExcelPackage();
 
         var worksheet = package.Workbook.Worksheets.Add("RevenueReport");
 
-        // Headers
         worksheet.Cells[1, 1].Value = "Kỳ thu";
         worksheet.Cells[1, 2].Value = "Mã phòng";
         worksheet.Cells[1, 3].Value = "Sinh viên";
@@ -81,7 +124,7 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
         }
 
         int row = 2;
-        foreach (var item in data.Details)
+        foreach (var item in details)
         {
             worksheet.Cells[row, 1].Value = item.Period;
             worksheet.Cells[row, 2].Value = item.RoomCode;
@@ -96,13 +139,12 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
             row++;
         }
 
-        // Summary Row
         worksheet.Cells[row, 3].Value = "TỔNG CỘNG";
         worksheet.Cells[row, 3].Style.Font.Bold = true;
-        worksheet.Cells[row, 4].Value = data.TotalRoomFee;
-        worksheet.Cells[row, 5].Value = data.TotalElectricFee;
-        worksheet.Cells[row, 6].Value = data.TotalWaterFee;
-        worksheet.Cells[row, 7].Value = data.GrandTotal;
+        worksheet.Cells[row, 4].Value = totalRoomFee;
+        worksheet.Cells[row, 5].Value = totalElectricFee;
+        worksheet.Cells[row, 6].Value = totalWaterFee;
+        worksheet.Cells[row, 7].Value = grandTotal;
 
         using (var summaryRange = worksheet.Cells[row, 3, row, 7])
         {

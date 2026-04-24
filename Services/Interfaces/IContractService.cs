@@ -10,6 +10,7 @@ public interface IContractService
     Task<(bool Success, string Message, List<RenewalPackageResponseDto>? Packages)> GetRenewalPackagesAsync(int studentId);
     Task<(bool Success, string Message)> SubmitRenewalAsync(int studentId, RenewalRequestDto dto);
     Task<List<RenewalResponseDto>> GetAllPendingRenewalsAsync();
+    Task<PagedResultDto<RenewalResponseDto>> GetPagedPendingRenewalsAsync(RenewalListQueryDto query);
     Task<(bool Success, string Message)> ApproveRenewalAsync(int requestId, ApproveRenewalDto dto);
     Task<List<ContractResponseDto>> GetAllContractsAsync();
     Task<PagedResultDto<ContractResponseDto>> GetPagedContractsAsync(ContractListQueryDto query);
