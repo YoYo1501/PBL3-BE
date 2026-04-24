@@ -200,6 +200,25 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
         };
     }
 
+    public async Task<(bool Success, string Message)> CancelTransferAsync(int requestId, int studentId)
+    {
+        var transfer = await _repo.GetTransferByIdAsync(requestId);
+        if (transfer == null)
+            return (false, "Không tìm thấy yêu cầu chuyển phòng.");
+
+        if (transfer.StudentId != studentId)
+            return (false, "Bạn không có quyền hủy yêu cầu này.");
+
+        if (transfer.Status != "Pending")
+            return (false, "Chỉ có thể hủy yêu cầu đang chờ duyệt.");
+
+        transfer.Status = "Cancelled";
+        await _repo.UpdateTransferAsync(transfer);
+        await _repo.SaveChangesAsync();
+
+        return (true, "Đã hủy yêu cầu chuyển phòng.");
+    }
+
     public async Task<List<RoomTransferResponseDto>> GetMyTransfersAsync(int studentId)
     {
         var list = await _repo.GetMyTransfersAsync(studentId);

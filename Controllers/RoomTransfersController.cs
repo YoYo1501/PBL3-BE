@@ -1,4 +1,4 @@
-﻿using BackendAPI.Models.DTOs.RoomTransfer;
+using BackendAPI.Models.DTOs.RoomTransfer;
 using BackendAPI.Models.DTOs.RoomTransfer.Requests;
 using BackendAPI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -85,6 +85,17 @@ public class RoomTransfersController(IRoomTransferService _service) : Controller
     public async Task<IActionResult> Approve(int id, [FromBody] ApproveTransfer dto)
     {
         var (success, message) = await _service.ApproveTransferAsync(id, dto.IsApproved, dto.RejectionReason);
+        if (!success) return BadRequest(new { message });
+        return Ok(new { message });
+    }
+
+    // DELETE /api/roomtransfers/{id}/cancel - sinh viên hủy yêu cầu Pending
+    [HttpDelete("{id}/cancel")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var studentId = GetStudentId();
+        var (success, message) = await _service.CancelTransferAsync(id, studentId);
         if (!success) return BadRequest(new { message });
         return Ok(new { message });
     }
