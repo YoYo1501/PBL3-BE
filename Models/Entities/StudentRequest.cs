@@ -12,7 +12,7 @@ public class StudentRequest
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     
-    public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected, Completed
+    public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ResolvedAt { get; set; }
     public string? ResolutionNote { get; set; }

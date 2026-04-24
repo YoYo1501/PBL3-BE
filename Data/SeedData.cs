@@ -567,7 +567,7 @@ public static class SeedData
                 RequestType = "Other",
                 Title = "Xin cap lai the noi tru",
                 Description = "The noi tru bi mo chu, can ho tro cap lai.",
-                Status = "Completed",
+                Status = "Approved",
                 CreatedAt = now.AddDays(-10),
                 ResolvedAt = now.AddDays(-7),
                 ResolutionNote = "Da cap lai the noi tru tai van phong KTX."

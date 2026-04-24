@@ -81,18 +81,22 @@ public class StudentRequestService(IStudentRequestRepository _repo, IContractRep
         if (request == null)
             throw new BadRequestException("Không tìm thấy yêu cầu.");
 
-        request.Status = dto.Status;
+        var nextStatus = (dto.Status ?? string.Empty).Trim();
+        if (nextStatus != "Approved" && nextStatus != "Rejected")
+            throw new BadRequestException("Trạng thái yêu cầu chỉ được duyệt hoặc từ chối.");
+
+        if (request.Status != "Pending")
+            throw new BadRequestException("Chỉ có thể xử lý yêu cầu đang chờ duyệt.");
+
+        request.Status = nextStatus;
         if (!string.IsNullOrEmpty(dto.ResolutionNote))
             request.ResolutionNote = dto.ResolutionNote;
 
-        if (dto.Status == "Completed" || dto.Status == "Rejected" || dto.Status == "Approved")
-        {
-            request.ResolvedAt = DateTime.UtcNow;
-        }
+        request.ResolvedAt = DateTime.UtcNow;
 
-        if (request.RequestType == "Checkout" && dto.Status == "Completed")
+        if (request.RequestType == "Checkout" && nextStatus == "Approved")
         {
-            // Nếu là yêu cầu trả phòng và đã hoàn thành -> Thanh lý hợp đồng
+            // Nếu duyệt yêu cầu trả phòng thì thanh lý hợp đồng đang hiệu lực.
             var contract = await _contractRepo.GetActiveContractAsync(request.StudentId);
             if (contract != null)
             {

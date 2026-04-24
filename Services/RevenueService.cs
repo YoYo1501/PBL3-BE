@@ -1,3 +1,4 @@
+using BackendAPI.Exceptions;
 using BackendAPI.Models.DTOs.Common;
 using BackendAPI.Models.DTOs.Revenue.Requests;
 using BackendAPI.Models.DTOs.Revenue.Responses;
@@ -13,14 +14,13 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
 {
     public async Task<(bool Success, string Message, RevenueResponseDto? Data)> GetRevenueAsync(RevenueFilterDto filter)
     {
-        if (filter.StartDate > filter.EndDate)
-            return (false, "Ngày bắt đầu phải nhỏ hơn ngày kết thúc.", null);
+        var validationMessage = ValidateFilter(filter);
+        if (validationMessage != null)
+            return (false, validationMessage, null);
 
-        if (filter.EndDate > DateTime.UtcNow)
-            return (false, "Ngày kết thúc không được vượt quá ngày hiện tại.", null);
-
+        var (startDate, endDate) = NormalizeDateRange(filter);
         var invoices = await repo.GetInvoicesAsync(
-            filter.StartDate, filter.EndDate,
+            startDate, endDate,
             filter.RoomCode, filter.Period);
 
         if (!invoices.Any())
@@ -74,9 +74,14 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
 
     public async Task<byte[]> ExportToExcelAsync(RevenueFilterDto filter)
     {
+        var validationMessage = ValidateFilter(filter);
+        if (validationMessage != null)
+            throw new BadRequestException(validationMessage);
+
+        var (startDate, endDate) = NormalizeDateRange(filter);
         var invoices = await repo.GetInvoicesAsync(
-            filter.StartDate,
-            filter.EndDate,
+            startDate,
+            endDate,
             filter.RoomCode,
             filter.Period);
 
@@ -156,5 +161,19 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
         worksheet.Cells.AutoFitColumns();
 
         return package.GetAsByteArray();
+    }
+
+    private static (DateTime StartDate, DateTime EndDate) NormalizeDateRange(RevenueFilterDto filter)
+        => (filter.StartDate.Date, filter.EndDate.Date.AddDays(1).AddTicks(-1));
+
+    private static string? ValidateFilter(RevenueFilterDto filter)
+    {
+        if (filter.StartDate.Date > filter.EndDate.Date)
+            return "Ngày bắt đầu không được lớn hơn ngày kết thúc.";
+
+        if (filter.EndDate.Date > DateTime.Today)
+            return "Ngày kết thúc không được vượt quá ngày hiện tại.";
+
+        return null;
     }
 }
