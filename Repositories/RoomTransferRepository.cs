@@ -53,6 +53,14 @@ public class RoomTransferRepository : IRoomTransferRepository
             .FirstOrDefaultAsync(r => r.StudentId == studentId
                 && r.Status == "Pending");
 
+    public async Task<RoomTransferRequest?> GetPendingTransferByIdAsync(int requestId)
+        => await _context.RoomTransferRequests
+            .Include(r => r.Student)
+            .Include(r => r.FromRoom)
+            .Include(r => r.ToRoom)
+            .FirstOrDefaultAsync(r => r.Id == requestId
+                && r.Status == "Pending");
+
     public async Task AddAsync(RoomTransferRequest request)
         => await _context.RoomTransferRequests.AddAsync(request);
 
@@ -64,6 +72,24 @@ public class RoomTransferRepository : IRoomTransferRepository
             .Where(r => r.Status == "Pending")
             .ToListAsync();
 
+    public async Task<(List<RoomTransferRequest> Items, int TotalCount)> GetPagedPendingAsync(int page, int pageSize)
+    {
+        var query = _context.RoomTransferRequests
+            .Include(r => r.Student)
+            .Include(r => r.FromRoom)
+            .Include(r => r.ToRoom)
+            .Where(r => r.Status == "Pending");
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(r => r.RequestedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task<List<RoomTransferRequest>> GetMyTransfersAsync(int studentId)
         => await _context.RoomTransferRequests
             .Include(r => r.FromRoom)
@@ -71,6 +97,9 @@ public class RoomTransferRepository : IRoomTransferRepository
             .Where(r => r.StudentId == studentId)
             .OrderByDescending(r => r.RequestedAt)
             .ToListAsync();
+
+    public async Task UpdateContractAsync(Contract contract)
+        => _context.Contracts.Update(contract);
 
     public async Task UpdateRoomAsync(Room room)
         => _context.Rooms.Update(room);

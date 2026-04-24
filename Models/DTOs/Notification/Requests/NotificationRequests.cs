@@ -4,7 +4,8 @@ namespace BackendAPI.Models.DTOs.Notification.Requests;
 
 public class CreateNotificationDto
 {
-    public int UserId { get; set; }
+    public int? UserId { get; set; }
+    public bool SendToAllStudents { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
 }

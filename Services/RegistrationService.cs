@@ -6,6 +6,7 @@ using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using BackendAPI.Exceptions;
+using BackendAPI.Models.DTOs.Common;
 
 namespace BackendAPI.Services;
 
@@ -13,6 +14,7 @@ public class RegistrationService(
 IRegistrationRepository _registrationRepo,
 IRoomRepository _roomRepo,
 IEmailService _emailService,
+INotificationService _notificationService,
 AppDbContext _context) : IRegistrationService
 {
 
@@ -84,6 +86,10 @@ AppDbContext _context) : IRegistrationService
         };
         await _registrationRepo.AddAsync(registration);
         await _registrationRepo.SaveChangesAsync();
+        await _notificationService.CreateForAdminsAsync(
+            "Don dang ky o tru moi",
+            $"{dto.FullName} vua gui don dang ky vao phong {room.RoomCode}."
+        );
 
         return (true, "Đăng ký thành công! Vui lòng chờ admin duyệt đơn.", new RegistrationResponse
         {
@@ -127,6 +133,32 @@ AppDbContext _context) : IRegistrationService
             EndDate = r.EndDate,
             SubmittedAt = r.SubmittedAt
         }).ToList();
+    }
+
+    public async Task<PagedResultDto<RegistrationResponse>> GetPagedPendingAsync(RegistrationListQueryDto query)
+    {
+        var page = query.GetPage();
+        var pageSize = query.GetPageSize(5);
+        var (items, totalCount) = await _registrationRepo.GetPagedPendingAsync(page, pageSize);
+
+        return new PagedResultDto<RegistrationResponse>
+        {
+            Items = items.Select(r => new RegistrationResponse
+            {
+                Id = r.Id,
+                RegistrationCode = r.RegistrationCode,
+                FullName = r.FullName,
+                RoomCode = r.Room.RoomCode,
+                Status = r.Status,
+                StartDate = r.StartDate,
+                EndDate = r.EndDate,
+                SubmittedAt = r.SubmittedAt
+            }).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalCount,
+            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize))
+        };
     }
 
     public async Task<(bool Success, string Message)> ApproveAsync(int id, ApproveRegistrationRequest dto)

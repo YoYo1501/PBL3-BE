@@ -34,6 +34,20 @@ public class NotificationRepository(AppDbContext context) : INotificationReposit
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync();
 
+    public async Task<(List<Notification> Items, int TotalCount)> GetPagedByUserIdAsync(string? searchText, DateTime? fromDate, DateTime? toDate, int page, int pageSize, int userId)
+    {
+        var query = BuildQuery(searchText, fromDate, toDate)
+            .Where(n => n.UserId == userId);
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(n => n.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task AddAsync(Notification notification)
         => await context.Notifications.AddAsync(notification);
 

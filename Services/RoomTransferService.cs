@@ -1,16 +1,19 @@
+using BackendAPI.Data;
+using BackendAPI.Models.DTOs.Common;
 using BackendAPI.Models.DTOs.Room;
 using BackendAPI.Models.DTOs.RoomTransfer;
 using BackendAPI.Models.DTOs.RoomTransfer.Requests;
 using BackendAPI.Models.Entities;
 using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Data;
 
 namespace BackendAPI.Services;
 
-public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _cache) : IRoomTransferService
+public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _cache, AppDbContext _context, INotificationService _notificationService) : IRoomTransferService
 {
-
     public async Task<(bool Success, string Message, List<RoomDto>? Rooms)> GetAvailableRoomsAsync(int studentId)
     {
         // Kiểm tra hợp đồng hiệu lực
@@ -104,6 +107,10 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
 
         await _repo.AddAsync(request);
         await _repo.SaveChangesAsync();
+        await _notificationService.CreateForAdminsAsync(
+            "Yeu cau chuyen phong moi",
+            $"Sinh vien #{studentId} vua gui yeu cau chuyen phong sang phong #{dto.ToRoomId}."
+        );
 
         // Xóa cache giữ chỗ
         _cache.Remove(cacheKey);
@@ -113,38 +120,45 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
 
     public async Task<(bool Success, string Message)> ApproveTransferAsync(int requestId, bool isApproved, string? rejectionReason)
     {
-        var request = await _repo.GetAllPendingAsync();
-        var transfer = request.FirstOrDefault(r => r.Id == requestId);
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        var transfer = await _repo.GetPendingTransferByIdAsync(requestId);
         if (transfer == null)
             return (false, "Không tìm thấy yêu cầu chuyển phòng.");
 
         if (isApproved)
         {
+            var contract = await _repo.GetActiveContractAsync(transfer.StudentId);
+            if (contract == null)
+                return (false, "Sinh vien khong con hop dong hieu luc de chuyen phong.");
+
+            if (contract.RoomId != transfer.FromRoomId)
+                return (false, "Phong hien tai cua sinh vien khong khop voi yeu cau chuyen phong.");
             // Giảm người ở phòng cũ
             var fromRoom = await _repo.GetRoomByIdAsync(transfer.FromRoomId);
-            if (fromRoom != null)
-            {
-                fromRoom.CurrentOccupancy -= 1;
-                if (fromRoom.Status == "Full") fromRoom.Status = "Available";
-                _repo.UpdateRoomAsync(fromRoom);
-            }
+            if (fromRoom == null)
+                return (false, "Phong cu khong ton tai.");
+
+            if (fromRoom.CurrentOccupancy <= 0)
+                return (false, "Du lieu phong cu khong hop le de duyet chuyen phong.");
 
             // Tăng người ở phòng mới
             var toRoom = await _repo.GetRoomByIdAsync(transfer.ToRoomId);
             if (toRoom == null || toRoom.CurrentOccupancy >= toRoom.Capacity)
                 return (false, "Phòng mới đã đầy hoặc không tồn tại.");
 
+            fromRoom.CurrentOccupancy -= 1;
+            if (fromRoom.Status == "Full")
+                fromRoom.Status = "Available";
+            await _repo.UpdateRoomAsync(fromRoom);
+
             toRoom.CurrentOccupancy += 1;
             if (toRoom.CurrentOccupancy >= toRoom.Capacity) toRoom.Status = "Full";
-            _repo.UpdateRoomAsync(toRoom);
+            await _repo.UpdateRoomAsync(toRoom);
 
             // Cập nhật hợp đồng
-            var contract = await _repo.GetActiveContractAsync(transfer.StudentId);
-            if (contract != null)
-            {
-                contract.RoomId = transfer.ToRoomId;
-                _repo.UpdateRoomAsync(fromRoom!);
-            }
+            contract.RoomId = transfer.ToRoomId;
+            await _repo.UpdateContractAsync(contract);
 
             transfer.Status = "Approved";
         }
@@ -157,8 +171,9 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
             transfer.RejectionReason = rejectionReason;
         }
 
-        _repo.UpdateTransferAsync(transfer);
+        await _repo.UpdateTransferAsync(transfer);
         await _repo.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return (true, isApproved ? "Duyệt chuyển phòng thành công." : "Đã từ chối yêu cầu chuyển phòng.");
     }
@@ -166,16 +181,23 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
     public async Task<List<RoomTransferResponseDto>> GetAllPendingAsync()
     {
         var list = await _repo.GetAllPendingAsync();
-        return list.Select(r => new RoomTransferResponseDto
+        return list.Select(ToDto).ToList();
+    }
+
+    public async Task<PagedResultDto<RoomTransferResponseDto>> GetPagedPendingAsync(RoomTransferPendingQueryDto query)
+    {
+        var page = query.GetPage();
+        var pageSize = query.GetPageSize(5);
+        var (items, totalCount) = await _repo.GetPagedPendingAsync(page, pageSize);
+
+        return new PagedResultDto<RoomTransferResponseDto>
         {
-            Id = r.Id,
-            FromRoomCode = r.FromRoom.RoomCode,
-            ToRoomCode = r.ToRoom.RoomCode,
-            Reason = r.Reason,
-            Status = r.Status,
-            RejectionReason = r.RejectionReason,
-            RequestedAt = r.RequestedAt
-        }).ToList();
+            Items = items.Select(ToDto).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalCount,
+            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize))
+        };
     }
 
     public async Task<List<RoomTransferResponseDto>> GetMyTransfersAsync(int studentId)
@@ -191,5 +213,19 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
             RejectionReason = r.RejectionReason,
             RequestedAt = r.RequestedAt
         }).ToList();
+    }
+
+    private static RoomTransferResponseDto ToDto(BackendAPI.Models.Entities.RoomTransferRequest request)
+    {
+        return new RoomTransferResponseDto
+        {
+            Id = request.Id,
+            FromRoomCode = request.FromRoom.RoomCode,
+            ToRoomCode = request.ToRoom.RoomCode,
+            Reason = request.Reason,
+            Status = request.Status,
+            RejectionReason = request.RejectionReason,
+            RequestedAt = request.RequestedAt
+        };
     }
 }

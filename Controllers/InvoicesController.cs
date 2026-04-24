@@ -105,11 +105,11 @@ public class InvoicesController(IInvoiceService service) : ControllerBase
     public async Task<IActionResult> ExportInvoices([FromQuery] string period)
     {
         if (string.IsNullOrEmpty(period))
-            return BadRequest(new { message = "Vui lòng cung c?p k? hóa don." });
+            return BadRequest(new { message = "Vui lòng cung cấp kỳ hóa đơn." });
 
         var fileContent = await service.ExportInvoicesAsync(period);
         if (fileContent == null || fileContent.Length == 0)
-            return BadRequest(new { message = "Không có d? li?u hóa don d? xu?t." });
+            return BadRequest(new { message = "Không có dữ liệu hóa đơn để xuất." }); 
 
         var fileName = $"HoaDon_{period}.xlsx";
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);

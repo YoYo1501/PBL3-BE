@@ -1,4 +1,6 @@
-﻿namespace BackendAPI.Models.DTOs.Revenue.Responses;
+using BackendAPI.Models.DTOs.Common;
+
+namespace BackendAPI.Models.DTOs.Revenue.Responses;
 
 public class RevenueResponseDto
 {
@@ -9,5 +11,5 @@ public class RevenueResponseDto
     public int TotalInvoices { get; set; }
     public int PaidInvoices { get; set; }
     public int UnpaidInvoices { get; set; }
-    public List<RevenueDetailDto> Details { get; set; } = [];
+    public PagedResultDto<RevenueDetailDto> Details { get; set; } = new();
 }

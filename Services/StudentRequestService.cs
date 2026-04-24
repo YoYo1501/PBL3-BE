@@ -1,4 +1,5 @@
-﻿using BackendAPI.Exceptions;
+using BackendAPI.Exceptions;
+using BackendAPI.Models.DTOs.Common;
 using BackendAPI.Models.DTOs.StudentRequest.Requests;
 using BackendAPI.Models.DTOs.StudentRequest.Responses;
 using BackendAPI.Models.Entities;
@@ -7,13 +8,16 @@ using BackendAPI.Services.Interfaces;
 
 namespace BackendAPI.Services;
 
-public class StudentRequestService(IStudentRequestRepository _repo, IContractRepository _contractRepo) : IStudentRequestService
+public class StudentRequestService(IStudentRequestRepository _repo, IContractRepository _contractRepo, INotificationService _notificationService) : IStudentRequestService
 {
     private StudentRequestResponseDto ToDto(StudentRequest r) => new()
     {
         Id = r.Id,
         StudentId = r.StudentId,
         StudentName = r.Student != null ? r.Student.FullName : "",
+        RoomCode = r.Student?.Contracts
+            .FirstOrDefault(c => c.Status == "Active" && c.Room != null)
+            ?.Room?.RoomCode ?? "",
         RequestType = r.RequestType,
         Title = r.Title,
         Description = r.Description,
@@ -41,6 +45,10 @@ public class StudentRequestService(IStudentRequestRepository _repo, IContractRep
 
         await _repo.AddAsync(request);
         await _repo.SaveChangesAsync();
+        await _notificationService.CreateForAdminsAsync(
+            "Yeu cau sinh vien moi",
+            $"Sinh vien #{studentId} vua gui yeu cau '{dto.Title}' thuoc loai {dto.RequestType}."
+        );
 
         return (true, "Gửi yêu cầu thành công", ToDto(request));
     }
@@ -104,6 +112,22 @@ public class StudentRequestService(IStudentRequestRepository _repo, IContractRep
     {
         var list = await _repo.GetAllAsync(status, requestType);
         return list.Select(ToDto).ToList();
+    }
+
+    public async Task<PagedResultDto<StudentRequestResponseDto>> GetPagedRequestsAsync(StudentRequestListQueryDto query)
+    {
+        var page = query.GetPage();
+        var pageSize = query.GetPageSize(5);
+        var (items, totalCount) = await _repo.GetPagedAsync(query.Status, query.RequestType, page, pageSize);
+
+        return new PagedResultDto<StudentRequestResponseDto>
+        {
+            Items = items.Select(ToDto).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalCount,
+            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize))
+        };
     }
 
     public async Task<List<StudentRequestResponseDto>> GetMyRequestsAsync(int studentId, string? status)

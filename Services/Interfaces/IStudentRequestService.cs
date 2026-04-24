@@ -1,3 +1,4 @@
+using BackendAPI.Models.DTOs.Common;
 using BackendAPI.Models.DTOs.StudentRequest.Requests;
 using BackendAPI.Models.DTOs.StudentRequest.Responses;
 
@@ -9,5 +10,6 @@ public interface IStudentRequestService
     Task<(bool Success, string Message)> CancelRequestAsync(int studentId, int requestId);
     Task<(bool Success, string Message)> UpdateRequestStatusAsync(int id, UpdateRequestStatusDto dto);
     Task<List<StudentRequestResponseDto>> GetAllRequestsAsync(string? status, string? requestType);
+    Task<PagedResultDto<StudentRequestResponseDto>> GetPagedRequestsAsync(StudentRequestListQueryDto query);
     Task<List<StudentRequestResponseDto>> GetMyRequestsAsync(int studentId, string? status);
 }

@@ -48,8 +48,14 @@ public class ContractsController(IContractService service) : ControllerBase
 
     [HttpGet("renewals/pending")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetAllPending()
+    public async Task<IActionResult> GetAllPending([FromQuery] RenewalListQueryDto query)
     {
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize"))
+        {
+            var paged = await service.GetPagedPendingRenewalsAsync(query);
+            return Ok(paged);
+        }
+
         var list = await service.GetAllPendingRenewalsAsync();
         return Ok(list);
     }
