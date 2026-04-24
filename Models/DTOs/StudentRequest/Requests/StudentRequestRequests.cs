@@ -9,6 +9,6 @@ public class CreateStudentRequestDto
 
 public class UpdateRequestStatusDto
 {
-    public string Status { get; set; } = string.Empty; // "Approved", "Rejected", "Completed"
+    public string Status { get; set; } = string.Empty; // "Approved", "Rejected"
     public string? ResolutionNote { get; set; }
 }
