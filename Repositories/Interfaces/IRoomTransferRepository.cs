@@ -11,6 +11,7 @@ namespace BackendAPI.Repositories.Interfaces
         Task<Room?> GetRoomByIdAsync(int roomId);
         Task<RoomTransferRequest?> GetPendingTransferAsync(int studentId);
         Task<RoomTransferRequest?> GetPendingTransferByIdAsync(int requestId);
+        Task<RoomTransferRequest?> GetTransferByIdAsync(int requestId);
         Task AddAsync(RoomTransferRequest request);
         Task<List<RoomTransferRequest>> GetAllPendingAsync();
         Task<(List<RoomTransferRequest> Items, int TotalCount)> GetPagedPendingAsync(int page, int pageSize);

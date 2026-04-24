@@ -14,4 +14,5 @@ public interface IRoomTransferService
     Task<List<RoomTransferResponseDto>> GetAllPendingAsync();
     Task<PagedResultDto<RoomTransferResponseDto>> GetPagedPendingAsync(RoomTransferPendingQueryDto query);
     Task<List<RoomTransferResponseDto>> GetMyTransfersAsync(int studentId);
+    Task<(bool Success, string Message)> CancelTransferAsync(int requestId, int studentId);
 }
