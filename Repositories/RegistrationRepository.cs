@@ -1,5 +1,6 @@
 ﻿using BackendAPI.Data;
 using BackendAPI.Models.Entities;
+using BackendAPI.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace BackendAPI.Repositories;
@@ -26,6 +27,23 @@ public class RegistrationRepository : IRegistrationRepository
             .Include(r => r.Room)
             .OrderByDescending(r => r.SubmittedAt)
             .ToListAsync();
+
+    public async Task<(List<Registration> Items, int TotalCount)> GetPagedPendingAsync(int page, int pageSize)
+    {
+        var query = _context.Registrations
+            .Include(r => r.Student)
+            .Include(r => r.Room)
+            .Where(r => r.Status == "Pending");
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(r => r.SubmittedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
 
     public async Task<bool> HasPendingRegistrationAsync(string citizenId)
         => await _context.Registrations

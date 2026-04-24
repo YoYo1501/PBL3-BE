@@ -1,49 +1,71 @@
-﻿using BackendAPI.Models.DTOs.Registration;
-using BackendAPI.Services;
+﻿using BackendAPI.Models.DTOs.Registration.Requests;
+using BackendAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackendAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class RegistrationsController : ControllerBase
+[Authorize]
+public class RegistrationsController(IRegistrationService service, IOcrService ocrService) : ControllerBase
 {
-    private readonly IRegistrationService _service;
-
-    public RegistrationsController(IRegistrationService service)
+    [HttpPost("extract-cccd")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExtractCccdInfo(IFormFile file)
     {
-        _service = service;
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Vui lòng tải lên ảnh CCCD." });
+        }
+
+        try
+        {
+            var extractedData = await ocrService.ExtractCccdInfoAsync(file);
+            return Ok(new { success = true, data = extractedData });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi khi trích xuất dữ liệu: " + ex.Message });
+        }
     }
 
-    // POST /api/registrations — sinh viên gửi đơn (không cần login)
     [HttpPost]
+    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegistrationRequestDto dto)
     {
-        var (success, message, data) = await _service.RegisterAsync(dto);
+        var (success, message, data) = await service.RegisterAsync(dto);
         if (!success) return BadRequest(new { message });
         return Ok(new { message, data });
     }
 
-    // GET /api/registrations — admin xem danh sách
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll()
     {
-        var list = await _service.GetAllAsync();
-        return Ok(list);
-    }
-    // GET /api/registrations/pending — admin xem danh sách chờ duyệt
-    [HttpGet("pending")]
-    public async Task<IActionResult> GetPending()
-    {
-        var list = await _service.GetPendingAsync();
+        var list = await service.GetAllAsync();
         return Ok(list);
     }
 
-    // PUT /api/registrations/{id}/approve — admin duyệt hoặc từ chối
-    [HttpPut("{id}/approve")]
-    public async Task<IActionResult> Approve(int id, [FromBody] ApproveRegistrationDto dto)
+    [HttpGet("pending")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetPending([FromQuery] RegistrationListQueryDto query)
     {
-        var (success, message) = await _service.ApproveAsync(id, dto);
+        if (Request.Query.ContainsKey("page") || Request.Query.ContainsKey("pageSize"))
+        {
+            var paged = await service.GetPagedPendingAsync(query);
+            return Ok(paged);
+        }
+
+        var list = await service.GetPendingAsync();
+        return Ok(list);
+    }
+
+    [HttpPut("{id}/approve")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Approve(int id, [FromBody] ApproveRegistrationRequest dto)
+    {
+        var (success, message) = await service.ApproveAsync(id, dto);
         if (!success) return BadRequest(new { message });
         return Ok(new { message });
     }

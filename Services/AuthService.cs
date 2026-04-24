@@ -1,72 +1,76 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BackendAPI.Data;
-using BackendAPI.Models.DTOs.Auth;
-using BackendAPI.Repositories;
-using Microsoft.EntityFrameworkCore;
+using BackendAPI.Models.DTOs.Auth.Requests;
+using BackendAPI.Models.DTOs.Auth.Responses;
+using BackendAPI.Repositories.Interfaces;
+using BackendAPI.Services.Interfaces;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BackendAPI.Services;
 
-public class AuthService : IAuthService
+public class AuthService(
+    IAuthRepository _authRepository,
+    IConfiguration _config) : IAuthService
 {
-    private readonly IAuthRepository _authRepository;
-    private readonly IConfiguration _config;
 
-    public AuthService(IAuthRepository authRepository, IConfiguration config)
+    public async Task<(LoginResponse? Data, string? Error)> LoginAsync(LoginRequest dto)
     {
-        _authRepository = authRepository;
-        _config = config;
-    }
+        var citizenId = dto.CitizenId.Trim();
+        var user = await _authRepository.GetUserByCitizenIdAsync(citizenId);
 
-    public async Task<LoginResponseDto?> LoginAsync(LoginDto dto)
-    {
-        //validate  the input
-        if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Password))
-            return null;
 
-        // Tìm user theo email
-        var user = await _authRepository.GetUserByEmailAsync(dto.Email);
+        if (user == null)
+            return (null, "Tên đăng nhập hoặc mật khẩu không đúng");
 
-        if (user == null) return null;
+        if (!user.IsActive)
+            return (null, "Tài khoản đã bị khóa");
 
-        // Kiểm tra password
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-            return null;
+            return (null, "Tên đăng nhập hoặc mật khẩu không đúng");
 
-        // Tạo JWT token
         var token = GenerateToken(user);
 
-        return new LoginResponseDto
+        return (new LoginResponse
         {
             Token = token,
             Role = user.Role,
-            FullName = user.Student?.FullName ?? string.Empty,
-            UserId = user.Id
-        };
+            FullName = user.Student?.FullName ?? "",
+            UserId = user.Id,
+            MustChangePassword = user.MustChangePassword
+        }, null);
     }
+
+
 
     private string GenerateToken(BackendAPI.Models.Entities.User user)
     {
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        // 1. Lấy đúng Key từ file Json
+        var jwtKey = _config["Jwt:Key"] ?? "supersecretkey_dormitory_2026_abcxyz_security_key";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
-        var claims = new[]
+        // 2. Thiết lập Claims
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Name, user.CitizenId),
+            new Claim(ClaimTypes.Email, user.Email ?? ""),
+            new Claim(ClaimTypes.Role, user.Role) // Đảm bảo user.Role là "Admin"
         };
+        
+        if (user.Student != null)
+        {
+            claims.Add(new Claim("StudentId", user.Student.Id.ToString()));
+        }
 
+        // 3. Tạo Token
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: _config["Jwt:Issuer"] ?? "BackendAPI",
+            audience: _config["Jwt:Audience"] ?? "FrontendApp",
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(
-                double.Parse(_config["Jwt:ExpireMinutes"]!)),
-            signingCredentials: new SigningCredentials(
-                key, SecurityAlgorithms.HmacSha256)
+            expires: DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:ExpireMinutes"] ?? "120")),
+            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);

@@ -1,5 +1,6 @@
 using BackendAPI.Data;
 using BackendAPI.Models.Entities;
+using BackendAPI.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace BackendAPI.Repositories
@@ -13,11 +14,11 @@ namespace BackendAPI.Repositories
             _context = context;
         }
 
-        public async Task<User?> GetUserByEmailAsync(string email)
+        public async Task<User?> GetUserByCitizenIdAsync(string citizenId)
         {
             return await _context.Users
                 .Include(u => u.Student)
-                .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+                .FirstOrDefaultAsync(u => u.CitizenId == citizenId);
         }
     }
 }
