@@ -45,12 +45,17 @@ public class StudentRequestService(IStudentRequestRepository _repo, IContractRep
 
         await _repo.AddAsync(request);
         await _repo.SaveChangesAsync();
+
+        // Lấy thông tin sinh viên để hiển thị trong thông báo
+        var createdRequest = await _repo.GetByIdAsync(request.Id);
+        var studentName = createdRequest?.Student?.FullName ?? $"Sinh viên #{studentId}";
+
         await _notificationService.CreateForAdminsAsync(
             "Yeu cau sinh vien moi",
-            $"Sinh vien #{studentId} vua gui yeu cau '{dto.Title}' thuoc loai {dto.RequestType}."
+            $"Sinh vien {studentName} vua gui yeu cau '{dto.Title}' thuoc loai {dto.RequestType}."
         );
 
-        return (true, "Gửi yêu cầu thành công", ToDto(request));
+        return (true, "Gửi yêu cầu thành công", ToDto(createdRequest ?? request));
     }
 
     public async Task<(bool Success, string Message)> CancelRequestAsync(int studentId, int requestId)
