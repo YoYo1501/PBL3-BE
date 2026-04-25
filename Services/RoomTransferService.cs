@@ -107,9 +107,16 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
 
         await _repo.AddAsync(request);
         await _repo.SaveChangesAsync();
+
+        // Lấy thông tin sinh viên và phòng để hiển thị trong thông báo
+        var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == studentId);
+        var toRoom = await _repo.GetRoomByIdAsync(dto.ToRoomId);
+        var studentName = student?.FullName ?? $"Sinh viên #{studentId}";
+        var toRoomCode = toRoom?.RoomCode ?? $"#{dto.ToRoomId}";
+
         await _notificationService.CreateForAdminsAsync(
             "Yeu cau chuyen phong moi",
-            $"Sinh vien #{studentId} vua gui yeu cau chuyen phong sang phong #{dto.ToRoomId}."
+            $"Sinh vien {studentName} vua gui yeu cau chuyen phong sang phong {toRoomCode}."
         );
 
         // Xóa cache giữ chỗ
