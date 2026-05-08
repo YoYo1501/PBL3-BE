@@ -16,6 +16,9 @@ public interface IInvoiceRepository
     Task<List<Invoice>> GetMyInvoicesAsync(int studentId);
     Task<List<Invoice>> GetAllInvoicesAsync(string? period, string? status);
     Task<(List<Invoice> Items, int TotalCount)> GetPagedInvoicesAsync(string? period, string? status, int page, int pageSize);
+    Task<List<Invoice>> GetPaidInvoicesAsync(string? period, int? studentId);
+    Task<(List<Invoice> Items, int TotalCount)> GetPagedPaidInvoicesAsync(string? period, int? studentId, int page, int pageSize);
+    Task<Invoice?> GetPaidInvoiceByIdAsync(int invoiceId, int? studentId = null);
     Task UpdateInvoiceAsync(Invoice invoice);
     Task SaveChangesAsync();
 }

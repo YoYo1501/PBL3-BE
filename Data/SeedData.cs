@@ -469,6 +469,7 @@ public static class SeedData
     private static Invoice NewInvoice(StudentSeed student, Room room, string period, decimal electricFee, decimal waterFee, string status, DateTime issuedAt)
     {
         var total = room.Price + electricFee + waterFee;
+        var paidAt = status == "Paid" ? issuedAt.AddHours(2) : (DateTime?)null;
         return new Invoice
         {
             Student = student.Student,
@@ -479,7 +480,10 @@ public static class SeedData
             WaterFee = waterFee,
             TotalAmount = total,
             Status = status,
-            IssuedAt = issuedAt
+            IssuedAt = issuedAt,
+            PaidAt = paidAt,
+            PaymentMethod = status == "Paid" ? "Seed" : null,
+            TransactionCode = paidAt.HasValue ? $"SEED-{student.Code}-{paidAt.Value:yyyyMMddHHmmss}" : null
         };
     }
 

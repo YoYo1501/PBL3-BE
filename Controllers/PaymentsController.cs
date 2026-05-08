@@ -1,5 +1,6 @@
 using System.Text;
 using BackendAPI.Models.DTOs.Payment.Requests;
+using BackendAPI.Models.Entities;
 using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,10 @@ namespace BackendAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PaymentsController(IPaymentService paymentService, IInvoiceRepository invoiceRepo) : ControllerBase
+public class PaymentsController(
+    IPaymentService paymentService,
+    IInvoiceRepository invoiceRepo,
+    IReceiptRepository receiptRepo) : ControllerBase
 {
     [HttpPost("create-payment-url/{invoiceId}")]
     [Authorize(Roles = "Student")]
@@ -49,9 +53,33 @@ public class PaymentsController(IPaymentService paymentService, IInvoiceReposito
                 var invoice = await invoiceRepo.GetInvoiceByIdAsync(invoiceId);
                 if (invoice != null && invoice.Status != "Paid")
                 {
+                    var paidAt = DateTime.UtcNow;
                     invoice.Status = "Paid";
+                    invoice.PaidAt = paidAt;
+                    invoice.PaymentMethod = "VNPAY";
+                    invoice.TransactionCode = response.TransactionId;
                     await invoiceRepo.UpdateInvoiceAsync(invoice);
-                    await invoiceRepo.SaveChangesAsync();
+
+                    if (!await receiptRepo.ReceiptExistsByInvoiceIdAsync(invoice.Id))
+                    {
+                        var period = invoice.Period
+                            .Replace("-", string.Empty, StringComparison.Ordinal)
+                            .Replace("/", string.Empty, StringComparison.Ordinal)
+                            .Replace(" ", string.Empty, StringComparison.Ordinal);
+
+                        await receiptRepo.AddReceiptAsync(new Receipt
+                        {
+                            InvoiceId = invoice.Id,
+                            ReceiptCode = $"BL-{period}-{invoice.Id:D6}",
+                            PaidAmount = invoice.TotalAmount,
+                            PaidAt = paidAt,
+                            PaymentMethod = invoice.PaymentMethod ?? "VNPAY",
+                            TransactionCode = invoice.TransactionCode ?? string.Empty,
+                            Status = "Success"
+                        });
+                    }
+
+                    await receiptRepo.SaveChangesAsync();
                 }
             }
 

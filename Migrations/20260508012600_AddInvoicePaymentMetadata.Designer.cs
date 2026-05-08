@@ -4,6 +4,7 @@ using BackendAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackendAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260508012600_AddInvoicePaymentMetadata")]
+    partial class AddInvoicePaymentMetadata
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -256,54 +259,6 @@ namespace BackendAPI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("BackendAPI.Models.Entities.Receipt", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("InvoiceId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("PaidAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("PaidAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReceiptCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TransactionCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvoiceId")
-                        .IsUnique();
-
-                    b.HasIndex("ReceiptCode")
-                        .IsUnique();
-
-                    b.ToTable("Receipts");
                 });
 
             modelBuilder.Entity("BackendAPI.Models.Entities.Registration", b =>
@@ -850,17 +805,6 @@ namespace BackendAPI.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("BackendAPI.Models.Entities.Receipt", b =>
-                {
-                    b.HasOne("BackendAPI.Models.Entities.Invoice", "Invoice")
-                        .WithOne("Receipt")
-                        .HasForeignKey("BackendAPI.Models.Entities.Receipt", "InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
-                });
-
             modelBuilder.Entity("BackendAPI.Models.Entities.Registration", b =>
                 {
                     b.HasOne("BackendAPI.Models.Entities.Room", "Room")
@@ -998,11 +942,6 @@ namespace BackendAPI.Migrations
             modelBuilder.Entity("BackendAPI.Models.Entities.Building", b =>
                 {
                     b.Navigation("Rooms");
-                });
-
-            modelBuilder.Entity("BackendAPI.Models.Entities.Invoice", b =>
-                {
-                    b.Navigation("Receipt");
                 });
 
             modelBuilder.Entity("BackendAPI.Models.Entities.Room", b =>

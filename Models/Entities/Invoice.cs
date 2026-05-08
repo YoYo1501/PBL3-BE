@@ -13,8 +13,12 @@
         public decimal TotalAmount { get; set; }
         public string Status { get; set; } = "Unpaid";
         public DateTime IssuedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? PaidAt { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? TransactionCode { get; set; }
 
         public Student Student { get; set; } = null!;
         public Room Room { get; set; } = null!;
+        public Receipt? Receipt { get; set; }
     }
 }

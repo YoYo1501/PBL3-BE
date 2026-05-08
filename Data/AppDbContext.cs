@@ -38,6 +38,7 @@ public class AppDbContext : DbContext
     public DbSet<Registration> Registrations => Set<Registration>();
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<ViolationRecord> ViolationRecords => Set<ViolationRecord>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<RoomTransferRequest> RoomTransferRequests => Set<RoomTransferRequest>();
@@ -119,6 +120,12 @@ public class AppDbContext : DbContext
             .HasForeignKey(i => i.RoomId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<Receipt>()
+            .HasOne(r => r.Invoice)
+            .WithOne(i => i.Receipt)
+            .HasForeignKey<Receipt>(r => r.InvoiceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // ================= VIOLATION =================
         modelBuilder.Entity<ViolationRecord>()
             .HasOne(v => v.Student)
@@ -191,6 +198,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Room>().HasIndex(r => r.RoomCode).IsUnique();
         modelBuilder.Entity<Contract>().HasIndex(c => c.ContractCode).IsUnique();
         modelBuilder.Entity<Registration>().HasIndex(r => r.RegistrationCode).IsUnique();
+        modelBuilder.Entity<Receipt>().HasIndex(r => r.InvoiceId).IsUnique();
+        modelBuilder.Entity<Receipt>().HasIndex(r => r.ReceiptCode).IsUnique();
 
         // ================= DECIMAL =================
         modelBuilder.Entity<Contract>().Property(c => c.Price).HasPrecision(18, 2);
@@ -198,6 +207,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Invoice>().Property(i => i.ElectricFee).HasPrecision(18, 2);
         modelBuilder.Entity<Invoice>().Property(i => i.WaterFee).HasPrecision(18, 2);
         modelBuilder.Entity<Invoice>().Property(i => i.TotalAmount).HasPrecision(18, 2);
+        modelBuilder.Entity<Receipt>().Property(r => r.PaidAmount).HasPrecision(18, 2);
 
         modelBuilder.Entity<ElectricWaterReading>().Property(e => e.OldElectric).HasPrecision(18, 2);
         modelBuilder.Entity<ElectricWaterReading>().Property(e => e.NewElectric).HasPrecision(18, 2);

@@ -10,7 +10,10 @@ using System.Text.RegularExpressions;
 
 namespace BackendAPI.Services;
 
-public class InvoiceService(IInvoiceRepository repo, INotificationService notificationService) : IInvoiceService
+public class InvoiceService(
+    IInvoiceRepository repo,
+    INotificationService notificationService,
+    IReceiptRepository receiptRepository) : IInvoiceService
 {
     public async Task<(bool Success, string Message, List<ImportResultDto>? Preview)> ImportExcelAsync(IFormFile file, string period)
     {
@@ -230,7 +233,7 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         return list.Select(i => new InvoiceDraftDto
         {
             Id = i.Id,
-            StudentName = string.Empty,
+            StudentName = i.Student?.FullName ?? string.Empty,
             RoomCode = i.Room.RoomCode,
             Period = i.Period,
             RoomFee = i.RoomFee,
@@ -238,7 +241,10 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
             WaterFee = i.WaterFee,
             TotalAmount = i.TotalAmount,
             Status = i.Status,
-            IssuedAt = i.IssuedAt
+            IssuedAt = i.IssuedAt,
+            PaidAt = i.PaidAt,
+            PaymentMethod = i.PaymentMethod,
+            TransactionCode = i.TransactionCode
         }).ToList();
     }
 
@@ -335,9 +341,33 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         if (invoice.Status != "Unpaid")
             return (false, "Chỉ có thể thu tiền hóa đơn đã phát hành và chưa thanh toán.");
 
+        var paidAt = DateTime.UtcNow;
         invoice.Status = "Paid";
+        invoice.PaidAt = paidAt;
+        invoice.PaymentMethod = "Cash";
+        invoice.TransactionCode = $"CASH-{invoice.Id}-{paidAt:yyyyMMddHHmmss}";
         await repo.UpdateInvoiceAsync(invoice);
-        await repo.SaveChangesAsync();
+
+        if (!await receiptRepository.ReceiptExistsByInvoiceIdAsync(invoice.Id))
+        {
+            var period = invoice.Period
+                .Replace("-", string.Empty, StringComparison.Ordinal)
+                .Replace("/", string.Empty, StringComparison.Ordinal)
+                .Replace(" ", string.Empty, StringComparison.Ordinal);
+
+            await receiptRepository.AddReceiptAsync(new Receipt
+            {
+                InvoiceId = invoice.Id,
+                ReceiptCode = $"BL-{period}-{invoice.Id:D6}",
+                PaidAmount = invoice.TotalAmount,
+                PaidAt = paidAt,
+                PaymentMethod = invoice.PaymentMethod ?? "Cash",
+                TransactionCode = invoice.TransactionCode ?? string.Empty,
+                Status = "Success"
+            });
+        }
+
+        await receiptRepository.SaveChangesAsync();
 
         return (true, "Thanh toán hóa đơn bằng tiền mặt thành công.");
     }
@@ -381,7 +411,10 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         WaterFee = i.WaterFee,
         TotalAmount = i.TotalAmount,
         Status = i.Status,
-        IssuedAt = i.IssuedAt
+        IssuedAt = i.IssuedAt,
+        PaidAt = i.PaidAt,
+        PaymentMethod = i.PaymentMethod,
+        TransactionCode = i.TransactionCode
     };
 
     private static string NormalizePeriod(string? period)

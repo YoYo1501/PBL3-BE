@@ -54,6 +54,7 @@ public class InvoiceRepository(AppDbContext context) : IInvoiceRepository
 
     public async Task<List<Invoice>> GetMyInvoicesAsync(int studentId)
         => await context.Invoices
+            .Include(i => i.Student)
             .Include(i => i.Room)
             .Where(i => i.StudentId == studentId && i.Status != "Draft")
             .OrderByDescending(i => i.IssuedAt)
@@ -77,6 +78,30 @@ public class InvoiceRepository(AppDbContext context) : IInvoiceRepository
         return (items, totalCount);
     }
 
+    public async Task<List<Invoice>> GetPaidInvoicesAsync(string? period, int? studentId)
+        => await BuildReceiptQuery(period, studentId)
+            .OrderByDescending(i => i.PaidAt ?? i.IssuedAt)
+            .ToListAsync();
+
+    public async Task<(List<Invoice> Items, int TotalCount)> GetPagedPaidInvoicesAsync(string? period, int? studentId, int page, int pageSize)
+    {
+        var query = BuildReceiptQuery(period, studentId);
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(i => i.PaidAt ?? i.IssuedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
+    public async Task<Invoice?> GetPaidInvoiceByIdAsync(int invoiceId, int? studentId = null)
+    {
+        var query = BuildReceiptQuery(null, studentId);
+        return await query.FirstOrDefaultAsync(i => i.Id == invoiceId);
+    }
+
     public Task UpdateInvoiceAsync(Invoice invoice)
     {
         context.Invoices.Update(invoice);
@@ -98,6 +123,22 @@ public class InvoiceRepository(AppDbContext context) : IInvoiceRepository
 
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(i => i.Status == status);
+
+        return query;
+    }
+
+    private IQueryable<Invoice> BuildReceiptQuery(string? period, int? studentId)
+    {
+        var query = context.Invoices
+            .Include(i => i.Student)
+            .Include(i => i.Room)
+            .Where(i => i.Status == "Paid");
+
+        if (!string.IsNullOrWhiteSpace(period))
+            query = query.Where(i => i.Period == period);
+
+        if (studentId.HasValue)
+            query = query.Where(i => i.StudentId == studentId.Value);
 
         return query;
     }
