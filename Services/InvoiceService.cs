@@ -10,7 +10,10 @@ using System.Text.RegularExpressions;
 
 namespace BackendAPI.Services;
 
-public class InvoiceService(IInvoiceRepository repo, INotificationService notificationService) : IInvoiceService
+public class InvoiceService(
+    IInvoiceRepository repo,
+    INotificationService notificationService,
+    IReceiptRepository receiptRepository) : IInvoiceService
 {
     public async Task<(bool Success, string Message, List<ImportResultDto>? Preview)> ImportExcelAsync(IFormFile file, string period)
     {
@@ -344,7 +347,27 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         invoice.PaymentMethod = "Cash";
         invoice.TransactionCode = $"CASH-{invoice.Id}-{paidAt:yyyyMMddHHmmss}";
         await repo.UpdateInvoiceAsync(invoice);
-        await repo.SaveChangesAsync();
+
+        if (!await receiptRepository.ReceiptExistsByInvoiceIdAsync(invoice.Id))
+        {
+            var period = invoice.Period
+                .Replace("-", string.Empty, StringComparison.Ordinal)
+                .Replace("/", string.Empty, StringComparison.Ordinal)
+                .Replace(" ", string.Empty, StringComparison.Ordinal);
+
+            await receiptRepository.AddReceiptAsync(new Receipt
+            {
+                InvoiceId = invoice.Id,
+                ReceiptCode = $"BL-{period}-{invoice.Id:D6}",
+                PaidAmount = invoice.TotalAmount,
+                PaidAt = paidAt,
+                PaymentMethod = invoice.PaymentMethod ?? "Cash",
+                TransactionCode = invoice.TransactionCode ?? string.Empty,
+                Status = "Success"
+            });
+        }
+
+        await receiptRepository.SaveChangesAsync();
 
         return (true, "Thanh toán hóa đơn bằng tiền mặt thành công.");
     }

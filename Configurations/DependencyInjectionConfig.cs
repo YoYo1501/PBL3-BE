@@ -24,6 +24,7 @@ namespace BackendAPI.Configurations
             services.AddScoped<IStudentRequestRepository, StudentRequestRepository>();
             services.AddScoped<IFacilityRepository, FacilityRepository>();
             services.AddScoped<IContractRepository, ContractRepository>();
+            services.AddScoped<IReceiptRepository, ReceiptRepository>();
 
             // Services
             services.AddHttpClient();

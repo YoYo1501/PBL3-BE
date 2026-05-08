@@ -19,5 +19,6 @@
 
         public Student Student { get; set; } = null!;
         public Room Room { get; set; } = null!;
+        public Receipt? Receipt { get; set; }
     }
 }
