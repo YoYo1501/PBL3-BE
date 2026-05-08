@@ -230,7 +230,7 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         return list.Select(i => new InvoiceDraftDto
         {
             Id = i.Id,
-            StudentName = string.Empty,
+            StudentName = i.Student?.FullName ?? string.Empty,
             RoomCode = i.Room.RoomCode,
             Period = i.Period,
             RoomFee = i.RoomFee,
@@ -238,7 +238,10 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
             WaterFee = i.WaterFee,
             TotalAmount = i.TotalAmount,
             Status = i.Status,
-            IssuedAt = i.IssuedAt
+            IssuedAt = i.IssuedAt,
+            PaidAt = i.PaidAt,
+            PaymentMethod = i.PaymentMethod,
+            TransactionCode = i.TransactionCode
         }).ToList();
     }
 
@@ -335,7 +338,11 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         if (invoice.Status != "Unpaid")
             return (false, "Chỉ có thể thu tiền hóa đơn đã phát hành và chưa thanh toán.");
 
+        var paidAt = DateTime.UtcNow;
         invoice.Status = "Paid";
+        invoice.PaidAt = paidAt;
+        invoice.PaymentMethod = "Cash";
+        invoice.TransactionCode = $"CASH-{invoice.Id}-{paidAt:yyyyMMddHHmmss}";
         await repo.UpdateInvoiceAsync(invoice);
         await repo.SaveChangesAsync();
 
@@ -381,7 +388,10 @@ public class InvoiceService(IInvoiceRepository repo, INotificationService notifi
         WaterFee = i.WaterFee,
         TotalAmount = i.TotalAmount,
         Status = i.Status,
-        IssuedAt = i.IssuedAt
+        IssuedAt = i.IssuedAt,
+        PaidAt = i.PaidAt,
+        PaymentMethod = i.PaymentMethod,
+        TransactionCode = i.TransactionCode
     };
 
     private static string NormalizePeriod(string? period)

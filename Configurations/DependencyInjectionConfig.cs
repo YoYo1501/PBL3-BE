@@ -34,6 +34,7 @@ namespace BackendAPI.Configurations
             services.AddScoped<IProfileService, ProfileService>();
             services.AddScoped<IViolationService, ViolationService>();
             services.AddScoped<IInvoiceService, InvoiceService>();
+            services.AddScoped<IReceiptService, ReceiptService>();
             services.AddScoped<IRevenueService, RevenueService>();
             services.AddScoped<IStudentService, StudentService>();
             services.AddScoped<INotificationService, NotificationService>();

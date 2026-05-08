@@ -49,7 +49,11 @@ public class PaymentsController(IPaymentService paymentService, IInvoiceReposito
                 var invoice = await invoiceRepo.GetInvoiceByIdAsync(invoiceId);
                 if (invoice != null && invoice.Status != "Paid")
                 {
+                    var paidAt = DateTime.UtcNow;
                     invoice.Status = "Paid";
+                    invoice.PaidAt = paidAt;
+                    invoice.PaymentMethod = "VNPAY";
+                    invoice.TransactionCode = response.TransactionId;
                     await invoiceRepo.UpdateInvoiceAsync(invoice);
                     await invoiceRepo.SaveChangesAsync();
                 }
