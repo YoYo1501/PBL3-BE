@@ -452,6 +452,12 @@ namespace BackendAPI.Migrations
                     b.Property<int>("ContractId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("ContractEndDateAfterRenewal")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ContractEndDateBeforeRenewal")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("RejectionReason")
                         .HasColumnType("nvarchar(max)");
 

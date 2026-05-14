@@ -59,11 +59,18 @@ public class ContractService(IContractRepository repo, INotificationService noti
         if (contract == null)
             return (false, "Không có hợp đồng hiệu lực.");
 
+        var package = (await repo.GetActivePackagesAsync())
+            .FirstOrDefault(p => p.Id == dto.RenewalPackageId);
+        if (package == null)
+            return (false, "Gói gia hạn không hợp lệ.");
+
         var request = new RenewalRequest
         {
             StudentId = studentId,
             ContractId = contract.Id,
             RenewalPackageId = dto.RenewalPackageId,
+            ContractEndDateBeforeRenewal = contract.EndDate,
+            ContractEndDateAfterRenewal = contract.EndDate.AddMonths(package.DurationMonths),
             Status = "Pending"
         };
 
@@ -116,7 +123,7 @@ public class ContractService(IContractRepository repo, INotificationService noti
 
         if (dto.IsApproved)
         {
-            request.Contract.EndDate = request.Contract.EndDate.AddMonths(request.RenewalPackage.DurationMonths);
+            request.Contract.EndDate = request.ContractEndDateAfterRenewal;
             request.Status = "Approved";
             await repo.UpdateContractAsync(request.Contract);
         }
@@ -220,10 +227,18 @@ public class ContractService(IContractRepository repo, INotificationService noti
         return new RenewalResponseDto
         {
             Id = r.Id,
-            ContractCode = r.Contract.ContractCode,
-            PackageName = r.RenewalPackage.Name,
+            ContractCode = r.Contract?.ContractCode ?? "",
+            StudentName = r.Student?.FullName ?? r.Contract?.Student?.FullName ?? "",
+            RoomCode = r.Contract?.Room?.RoomCode ?? "",
+            PackageName = r.RenewalPackage?.Name ?? "",
+            DurationMonths = r.RenewalPackage?.DurationMonths ?? 0,
+            ContractStartDate = r.Contract?.StartDate ?? default,
+            ContractEndDateBeforeRenewal = r.ContractEndDateBeforeRenewal,
+            ContractEndDateAfterRenewal = r.ContractEndDateAfterRenewal,
+            Price = r.Contract?.Price ?? 0,
             Status = r.Status,
-            RequestedAt = r.RequestedAt
+            RequestedAt = r.RequestedAt,
+            RejectionReason = r.RejectionReason
         };
     }
 }
