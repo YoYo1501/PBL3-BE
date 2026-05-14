@@ -24,7 +24,9 @@ public class RoomTransferRepository : IRoomTransferRepository
         => await _context.RoomTransferRequests
             .CountAsync(r => r.StudentId == studentId
                 && r.SemesterId == semesterId
-                && r.Status != "Rejected");
+                && (r.Status == "Pending"
+                    || r.Status == "Approved"
+                    || r.Status == "Completed"));
 
     public async Task<SemesterPeriods?> GetCurrentSemesterAsync()
     {
