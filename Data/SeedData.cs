@@ -667,32 +667,45 @@ public static class SeedData
 
         return
         [
-            new RenewalRequest
-            {
-                Student = studentMap["SV007"],
-                Contract = contractMap[studentMap["SV007"].CitizenId],
-                RenewalPackage = packages["1ky"],
-                Status = "Pending",
-                RequestedAt = now.AddDays(-2)
-            },
-            new RenewalRequest
-            {
-                Student = studentMap["SV001"],
-                Contract = contractMap[studentMap["SV001"].CitizenId],
-                RenewalPackage = packages["2ky"],
-                Status = "Approved",
-                RequestedAt = now.AddDays(-20)
-            },
-            new RenewalRequest
-            {
-                Student = studentMap["SV005"],
-                Contract = contractMap[studentMap["SV005"].CitizenId],
-                RenewalPackage = packages["1nam"],
-                Status = "Rejected",
-                RequestedAt = now.AddDays(-7),
-                RejectionReason = "Sinh vien co qua nhieu vi pham noi quy trong hoc ky."
-            }
+            NewRenewalRequest(studentMap["SV007"], contractMap[studentMap["SV007"].CitizenId], packages["1ky"], "Pending", now.AddDays(-2)),
+            NewRenewalRequest(studentMap["SV001"], contractMap[studentMap["SV001"].CitizenId], packages["2ky"], "Approved", now.AddDays(-20)),
+            NewRenewalRequest(
+                studentMap["SV005"],
+                contractMap[studentMap["SV005"].CitizenId],
+                packages["1nam"],
+                "Rejected",
+                now.AddDays(-7),
+                "Sinh vien co qua nhieu vi pham noi quy trong hoc ky.")
         ];
+    }
+
+    private static RenewalRequest NewRenewalRequest(
+        Student student,
+        Contract contract,
+        RenewalPackages package,
+        string status,
+        DateTime requestedAt,
+        string? rejectionReason = null)
+    {
+        var isApproved = status == "Approved";
+        var beforeRenewal = isApproved
+            ? contract.EndDate.AddMonths(-package.DurationMonths)
+            : contract.EndDate;
+        var afterRenewal = isApproved
+            ? contract.EndDate
+            : contract.EndDate.AddMonths(package.DurationMonths);
+
+        return new RenewalRequest
+        {
+            Student = student,
+            Contract = contract,
+            RenewalPackage = package,
+            ContractEndDateBeforeRenewal = beforeRenewal,
+            ContractEndDateAfterRenewal = afterRenewal,
+            Status = status,
+            RequestedAt = requestedAt,
+            RejectionReason = rejectionReason
+        };
     }
 
     private static List<Notification> CreateNotifications(DateTime now, IReadOnlyList<User> admins, IReadOnlyList<StudentSeed> students)

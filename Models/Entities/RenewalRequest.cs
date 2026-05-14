@@ -9,6 +9,8 @@ public class RenewalRequest
     public Contract Contract { get; set; } = null!;
     public int RenewalPackageId { get; set; }
     public RenewalPackages RenewalPackage { get; set; } = null!;
+    public DateTime ContractEndDateBeforeRenewal { get; set; }
+    public DateTime ContractEndDateAfterRenewal { get; set; }
     public string Status { get; set; } = "Pending";
     public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
     public string? RejectionReason { get; set; }
