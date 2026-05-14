@@ -43,23 +43,19 @@ public class ContractRepository(AppDbContext context) : IContractRepository
             .Include(r => r.RenewalPackage)
             .FirstOrDefaultAsync(r => r.Id == id);
 
+    public async Task<List<RenewalRequest>> GetAllRenewalsAsync()
+        => await BuildRenewalQuery(null)
+            .OrderByDescending(r => r.RequestedAt)
+            .ToListAsync();
+
     public async Task<List<RenewalRequest>> GetAllPendingRenewalsAsync()
-        => await context.RenewalRequests
-            .Include(r => r.Student)
-            .Include(r => r.Contract)
-                .ThenInclude(c => c.Room)
-            .Include(r => r.RenewalPackage)
-            .Where(r => r.Status == "Pending")
+        => await BuildRenewalQuery("Pending")
+            .OrderByDescending(r => r.RequestedAt)
             .ToListAsync();
 
     public async Task<(List<RenewalRequest> Items, int TotalCount)> GetPagedPendingRenewalsAsync(int page, int pageSize)
     {
-        var query = context.RenewalRequests
-            .Include(r => r.Student)
-            .Include(r => r.Contract)
-                .ThenInclude(c => c.Room)
-            .Include(r => r.RenewalPackage)
-            .Where(r => r.Status == "Pending");
+        var query = BuildRenewalQuery("Pending");
 
         var totalCount = await query.CountAsync();
         var items = await query
@@ -69,6 +65,23 @@ public class ContractRepository(AppDbContext context) : IContractRepository
             .ToListAsync();
 
         return (items, totalCount);
+    }
+
+    private IQueryable<RenewalRequest> BuildRenewalQuery(string? status)
+    {
+        var query = context.RenewalRequests
+            .Include(r => r.Student)
+            .Include(r => r.Contract)
+                .ThenInclude(c => c.Room)
+            .Include(r => r.RenewalPackage)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(r => r.Status == status);
+        }
+
+        return query;
     }
 
     public async Task<List<Contract>> GetAllContractsAsync()

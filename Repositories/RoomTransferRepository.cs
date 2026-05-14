@@ -68,21 +68,19 @@ public class RoomTransferRepository : IRoomTransferRepository
     public async Task AddAsync(RoomTransferRequest request)
         => await _context.RoomTransferRequests.AddAsync(request);
 
+    public async Task<List<RoomTransferRequest>> GetAllTransfersAsync()
+        => await BuildTransferQuery(null)
+            .OrderByDescending(r => r.RequestedAt)
+            .ToListAsync();
+
     public async Task<List<RoomTransferRequest>> GetAllPendingAsync()
-        => await _context.RoomTransferRequests
-            .Include(r => r.Student)
-            .Include(r => r.FromRoom)
-            .Include(r => r.ToRoom)
-            .Where(r => r.Status == "Pending")
+        => await BuildTransferQuery("Pending")
+            .OrderByDescending(r => r.RequestedAt)
             .ToListAsync();
 
     public async Task<(List<RoomTransferRequest> Items, int TotalCount)> GetPagedPendingAsync(int page, int pageSize)
     {
-        var query = _context.RoomTransferRequests
-            .Include(r => r.Student)
-            .Include(r => r.FromRoom)
-            .Include(r => r.ToRoom)
-            .Where(r => r.Status == "Pending");
+        var query = BuildTransferQuery("Pending");
 
         var totalCount = await query.CountAsync();
         var items = await query
@@ -92,6 +90,22 @@ public class RoomTransferRepository : IRoomTransferRepository
             .ToListAsync();
 
         return (items, totalCount);
+    }
+
+    private IQueryable<RoomTransferRequest> BuildTransferQuery(string? status)
+    {
+        var query = _context.RoomTransferRequests
+            .Include(r => r.Student)
+            .Include(r => r.FromRoom)
+            .Include(r => r.ToRoom)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(r => r.Status == status);
+        }
+
+        return query;
     }
 
     public async Task<List<RoomTransferRequest>> GetMyTransfersAsync(int studentId)

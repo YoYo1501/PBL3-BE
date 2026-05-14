@@ -77,17 +77,16 @@ public class ContractService(IContractRepository repo, INotificationService noti
         return (true, "Gửi yêu cầu gia hạn thành công! Vui lòng chờ admin duyệt.");
     }
 
+    public async Task<List<RenewalResponseDto>> GetAllRenewalsAsync()
+    {
+        var list = await repo.GetAllRenewalsAsync();
+        return list.Select(ToRenewalDto).ToList();
+    }
+
     public async Task<List<RenewalResponseDto>> GetAllPendingRenewalsAsync()
     {
         var list = await repo.GetAllPendingRenewalsAsync();
-        return list.Select(r => new RenewalResponseDto
-        {
-            Id = r.Id,
-            ContractCode = r.Contract.ContractCode,
-            PackageName = r.RenewalPackage.Name,
-            Status = r.Status,
-            RequestedAt = r.RequestedAt
-        }).ToList();
+        return list.Select(ToRenewalDto).ToList();
     }
 
     public async Task<PagedResultDto<RenewalResponseDto>> GetPagedPendingRenewalsAsync(RenewalListQueryDto query)
@@ -98,14 +97,7 @@ public class ContractService(IContractRepository repo, INotificationService noti
 
         return new PagedResultDto<RenewalResponseDto>
         {
-            Items = items.Select(r => new RenewalResponseDto
-            {
-                Id = r.Id,
-                ContractCode = r.Contract.ContractCode,
-                PackageName = r.RenewalPackage.Name,
-                Status = r.Status,
-                RequestedAt = r.RequestedAt
-            }).ToList(),
+            Items = items.Select(ToRenewalDto).ToList(),
             Page = page,
             PageSize = pageSize,
             TotalItems = totalCount,
@@ -220,6 +212,18 @@ public class ContractService(IContractRepository repo, INotificationService noti
             CanRenew = daysRemaining <= 30 && c.Status == "Active",
             StudentId = c.StudentId,
             StudentName = c.Student?.FullName
+        };
+    }
+
+    private static RenewalResponseDto ToRenewalDto(RenewalRequest r)
+    {
+        return new RenewalResponseDto
+        {
+            Id = r.Id,
+            ContractCode = r.Contract.ContractCode,
+            PackageName = r.RenewalPackage.Name,
+            Status = r.Status,
+            RequestedAt = r.RequestedAt
         };
     }
 }

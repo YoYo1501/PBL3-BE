@@ -60,6 +60,14 @@ public class ContractsController(IContractService service) : ControllerBase
         return Ok(list);
     }
 
+    [HttpGet("renewals")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllRenewals()
+    {
+        var list = await service.GetAllRenewalsAsync();
+        return Ok(list);
+    }
+
     [HttpPut("renewals/{id}/approve")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Approve(int id, [FromBody] ApproveRenewalDto dto)

@@ -64,6 +64,15 @@ public class RoomTransfersController(IRoomTransferService _service) : Controller
         return Ok(new { message });
     }
 
+    // GET /api/roomtransfers admin xem tat ca yeu cau chuyen phong
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllTransfers()
+    {
+        var list = await _service.GetAllTransfersAsync();
+        return Ok(list);
+    }
+
     // GET /api/roomtransfers/pending admin xem danh sách yêu cầu chờ duyệt
     [HttpGet("pending")]
     [Authorize(Roles = "Admin")]
