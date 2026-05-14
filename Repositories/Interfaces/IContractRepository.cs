@@ -11,6 +11,7 @@ public interface IContractRepository
     Task<RenewalRequest?> GetPendingRenewalAsync(int studentId);
     Task AddRenewalRequestAsync(RenewalRequest request);
     Task<RenewalRequest?> GetRenewalByIdAsync(int id);
+    Task<List<RenewalRequest>> GetAllRenewalsAsync();
     Task<List<RenewalRequest>> GetAllPendingRenewalsAsync();
     Task<(List<RenewalRequest> Items, int TotalCount)> GetPagedPendingRenewalsAsync(int page, int pageSize);
     Task<List<Contract>> GetAllContractsAsync();

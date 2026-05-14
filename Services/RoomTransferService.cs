@@ -185,6 +185,12 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
         return (true, isApproved ? "Duyệt chuyển phòng thành công." : "Đã từ chối yêu cầu chuyển phòng.");
     }
 
+    public async Task<List<RoomTransferResponseDto>> GetAllTransfersAsync()
+    {
+        var list = await _repo.GetAllTransfersAsync();
+        return list.Select(ToDto).ToList();
+    }
+
     public async Task<List<RoomTransferResponseDto>> GetAllPendingAsync()
     {
         var list = await _repo.GetAllPendingAsync();
