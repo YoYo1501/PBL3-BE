@@ -115,8 +115,8 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
         var toRoomCode = toRoom?.RoomCode ?? $"#{dto.ToRoomId}";
 
         await _notificationService.CreateForAdminsAsync(
-            "Yeu cau chuyen phong moi",
-            $"Sinh vien {studentName} vua gui yeu cau chuyen phong sang phong {toRoomCode}."
+            "Yêu cầu chuyển phòng mới",
+            $"Sinh viên {studentName} vừa gửi yêu cầu chuyển phòng sang phòng {toRoomCode}."
         );
 
         // Xóa cache giữ chỗ
@@ -238,6 +238,7 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
         return list.Select(r => new RoomTransferResponseDto
         {
             Id = r.Id,
+            StudentName = r.Student?.FullName ?? string.Empty,
             FromRoomCode = r.FromRoom?.RoomCode ?? "",
             ToRoomCode = r.ToRoom?.RoomCode ?? "",
             Reason = r.Reason,
@@ -252,6 +253,7 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
         return new RoomTransferResponseDto
         {
             Id = request.Id,
+            StudentName = request.Student?.FullName ?? string.Empty,
             FromRoomCode = request.FromRoom.RoomCode,
             ToRoomCode = request.ToRoom.RoomCode,
             Reason = request.Reason,

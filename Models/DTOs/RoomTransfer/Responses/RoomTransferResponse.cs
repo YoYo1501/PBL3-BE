@@ -3,6 +3,7 @@ namespace BackendAPI.Models.DTOs.RoomTransfer;
 public class RoomTransferResponseDto
 {
     public int Id { get; set; }
+    public string StudentName { get; set; } = string.Empty;
     public string FromRoomCode { get; set; } = string.Empty;
     public string ToRoomCode { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;

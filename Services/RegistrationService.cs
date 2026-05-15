@@ -87,8 +87,8 @@ AppDbContext _context) : IRegistrationService
         await _registrationRepo.AddAsync(registration);
         await _registrationRepo.SaveChangesAsync();
         await _notificationService.CreateForAdminsAsync(
-            "Don dang ky o tru moi",
-            $"{dto.FullName} vua gui don dang ky vao phong {room.RoomCode}."
+            "Đơn đăng ký ở trú mới",
+            $"{dto.FullName} vừa gửi đơn đăng ký vào phòng {room.RoomCode}."
         );
 
         return (true, "Đăng ký thành công! Vui lòng chờ admin duyệt đơn.", new RegistrationResponse
@@ -96,6 +96,10 @@ AppDbContext _context) : IRegistrationService
             Id = registration.Id,
             RegistrationCode = registration.RegistrationCode,
             FullName = dto.FullName,
+            CitizenId = dto.CitizenId,
+            Phone = dto.Phone,
+            Gender = dto.Gender,
+            Email = dto.Email,
             RoomCode = room.RoomCode,
             Status = registration.Status,
             StartDate = registration.StartDate,
@@ -112,6 +116,10 @@ AppDbContext _context) : IRegistrationService
             Id = r.Id,
             RegistrationCode = r.RegistrationCode,
             FullName = r.FullName,
+            CitizenId = r.CitizenId,
+            Phone = r.Phone,
+            Gender = r.Gender,
+            Email = r.Email,
             RoomCode = r.Room.RoomCode,
             Status = r.Status,
             StartDate = r.StartDate,
@@ -127,6 +135,10 @@ AppDbContext _context) : IRegistrationService
             Id = r.Id,
             RegistrationCode = r.RegistrationCode,
             FullName = r.FullName,
+            CitizenId = r.CitizenId,
+            Phone = r.Phone,
+            Gender = r.Gender,
+            Email = r.Email,
             RoomCode = r.Room.RoomCode,
             Status = r.Status,
             StartDate = r.StartDate,
@@ -148,6 +160,10 @@ AppDbContext _context) : IRegistrationService
                 Id = r.Id,
                 RegistrationCode = r.RegistrationCode,
                 FullName = r.FullName,
+                CitizenId = r.CitizenId,
+                Phone = r.Phone,
+                Gender = r.Gender,
+                Email = r.Email,
                 RoomCode = r.Room.RoomCode,
                 Status = r.Status,
                 StartDate = r.StartDate,
