@@ -16,6 +16,11 @@ public class NotificationService(INotificationRepository repo, AppDbContext cont
     {
         Id = notification.Id,
         UserId = notification.UserId,
+        RecipientName =
+            notification.User?.Student?.FullName
+            ?? notification.User?.FullName
+            ?? notification.User?.Email
+            ?? $"User #{notification.UserId}",
         Title = notification.Title,
         Message = notification.Message,
         IsRead = notification.IsRead,

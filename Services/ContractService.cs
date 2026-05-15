@@ -77,8 +77,8 @@ public class ContractService(IContractRepository repo, INotificationService noti
         await repo.AddRenewalRequestAsync(request);
         await repo.SaveChangesAsync();
         await notificationService.CreateForAdminsAsync(
-            "Yeu cau gia han hop dong moi",
-            $"Sinh vien #{studentId} vua gui yeu cau gia han cho hop dong {contract.ContractCode}."
+            "Yêu cầu gia hạn hợp đồng mới",
+            $"Sinh viên #{studentId} vừa gửi yêu cầu gia hạn cho hợp đồng {contract.ContractCode}."
         );
 
         return (true, "Gửi yêu cầu gia hạn thành công! Vui lòng chờ admin duyệt.");

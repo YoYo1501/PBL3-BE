@@ -11,13 +11,13 @@ public class NotificationRepository(AppDbContext context) : INotificationReposit
         => await context.Notifications.FirstOrDefaultAsync(n => n.Id == id);
 
     public async Task<List<Notification>> GetAllAsync(string? searchText, DateTime? fromDate, DateTime? toDate)
-        => await BuildQuery(searchText, fromDate, toDate)
+        => await BuildSentHistoryQuery(searchText, fromDate, toDate)
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync();
 
     public async Task<(List<Notification> Items, int TotalCount)> GetPagedAsync(string? searchText, DateTime? fromDate, DateTime? toDate, int page, int pageSize)
     {
-        var query = BuildQuery(searchText, fromDate, toDate);
+        var query = BuildSentHistoryQuery(searchText, fromDate, toDate);
         var totalCount = await query.CountAsync();
         var items = await query
             .OrderByDescending(n => n.CreatedAt)
@@ -30,6 +30,8 @@ public class NotificationRepository(AppDbContext context) : INotificationReposit
 
     public async Task<List<Notification>> GetByUserIdAsync(int userId)
         => await context.Notifications
+            .Include(n => n.User)
+            .ThenInclude(u => u.Student)
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync();
@@ -62,7 +64,10 @@ public class NotificationRepository(AppDbContext context) : INotificationReposit
 
     private IQueryable<Notification> BuildQuery(string? searchText, DateTime? fromDate, DateTime? toDate)
     {
-        var query = context.Notifications.AsQueryable();
+        var query = context.Notifications
+            .Include(n => n.User)
+            .ThenInclude(u => u.Student)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchText))
         {
@@ -78,4 +83,8 @@ public class NotificationRepository(AppDbContext context) : INotificationReposit
 
         return query;
     }
+
+    private IQueryable<Notification> BuildSentHistoryQuery(string? searchText, DateTime? fromDate, DateTime? toDate)
+        => BuildQuery(searchText, fromDate, toDate)
+            .Where(n => n.User.Role == "Student");
 }

@@ -51,8 +51,8 @@ public class StudentRequestService(IStudentRequestRepository _repo, IContractRep
         var studentName = createdRequest?.Student?.FullName ?? $"Sinh viên #{studentId}";
 
         await _notificationService.CreateForAdminsAsync(
-            "Yeu cau sinh vien moi",
-            $"Sinh vien {studentName} vua gui yeu cau '{dto.Title}' thuoc loai {dto.RequestType}."
+            "Yêu cầu sinh viên mới",
+            $"Sinh viên {studentName} vừa gửi yêu cầu '{dto.Title}' thuộc loại {dto.RequestType}."
         );
 
         return (true, "Gửi yêu cầu thành công", ToDto(createdRequest ?? request));
