@@ -12,6 +12,42 @@ public class RoomRepository(AppDbContext context) : IRoomRepository
             .Include(r => r.Building)
             .ToListAsync();
 
+    public async Task SyncOccupancyFromActiveContractsAsync()
+    {
+        var now = DateTime.UtcNow;
+        var activeOccupancy = await context.Contracts
+            .Where(c => c.Status == "Active" && c.StartDate <= now && c.EndDate >= now)
+            .GroupBy(c => c.RoomId)
+            .Select(g => new
+            {
+                RoomId = g.Key,
+                Count = g.Select(c => c.StudentId).Distinct().Count()
+            })
+            .ToDictionaryAsync(x => x.RoomId, x => x.Count);
+
+        var rooms = await context.Rooms.ToListAsync();
+        foreach (var room in rooms)
+        {
+            var occupancy = activeOccupancy.GetValueOrDefault(room.Id);
+            room.CurrentOccupancy = Math.Min(occupancy, room.Capacity);
+
+            if (room.CurrentOccupancy >= room.Capacity)
+            {
+                room.Status = "Full";
+            }
+            else if (room.CurrentOccupancy == 0 && room.Status == "Locked")
+            {
+                room.Status = "Locked";
+            }
+            else
+            {
+                room.Status = "Available";
+            }
+        }
+
+        await context.SaveChangesAsync();
+    }
+
     public async Task<(List<Room> Items, int TotalCount)> GetPagedAsync(string? keyword, string? status, int page, int pageSize)
     {
         var query = BuildQuery(keyword, status);
@@ -33,8 +69,9 @@ public class RoomRepository(AppDbContext context) : IRoomRepository
 
     public async Task<Room?> GetRoomByStudentIdAsync(int studentId)
     {
+        var now = DateTime.UtcNow;
         var contract = await context.Contracts
-            .FirstOrDefaultAsync(c => c.StudentId == studentId && c.Status == "Active" && c.EndDate >= DateTime.UtcNow);
+            .FirstOrDefaultAsync(c => c.StudentId == studentId && c.Status == "Active" && c.StartDate <= now && c.EndDate >= now);
         if (contract == null) return null;
 
         return await context.Rooms

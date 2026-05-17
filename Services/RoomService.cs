@@ -14,19 +14,21 @@ public class RoomService(
 {
     public async Task<List<RoomDto>> GetAllRooms()
     {
+        await roomRepository.SyncOccupancyFromActiveContractsAsync();
         var rooms = await roomRepository.GetAll();
-        return rooms.Select(ToDto).ToList();
+        return rooms.Select(r => ToDto(r)).ToList();
     }
 
     public async Task<PagedResultDto<RoomDto>> GetPagedRoomsAsync(RoomListQueryDto query)
     {
+        await roomRepository.SyncOccupancyFromActiveContractsAsync();
         var page = query.GetPage();
         var pageSize = query.GetPageSize(8);
         var (items, totalCount) = await roomRepository.GetPagedAsync(query.Keyword, query.Status, page, pageSize);
 
         return new PagedResultDto<RoomDto>
         {
-            Items = items.Select(ToDto).ToList(),
+            Items = items.Select(r => ToDto(r)).ToList(),
             Page = page,
             PageSize = pageSize,
             TotalItems = totalCount,
@@ -36,6 +38,7 @@ public class RoomService(
 
     public async Task<List<RoomDto>> GetAvailableRooms(string? registrationHoldToken = null)
     {
+        await roomRepository.SyncOccupancyFromActiveContractsAsync();
         var rooms = await roomRepository.GetAll();
         var result = new List<RoomDto>();
         foreach (var room in rooms.Where(r => r.Status == "Available"))
@@ -55,15 +58,20 @@ public class RoomService(
 
     public async Task<RoomDto?> GetRoomByIdAsync(int id)
     {
+        await roomRepository.SyncOccupancyFromActiveContractsAsync();
         var room = await roomRepository.GetByIdAsync(id);
         return room == null ? null : ToDto(room);
     }
 
     public async Task<RoomDto?> GetMyRoomAsync(int studentId)
     {
+        await roomRepository.SyncOccupancyFromActiveContractsAsync();
         var room = await roomRepository.GetRoomByStudentIdAsync(studentId);
         return room == null ? null : ToDto(room);
     }
+
+    public async Task SyncOccupancyFromActiveContractsAsync()
+        => await roomRepository.SyncOccupancyFromActiveContractsAsync();
 
     public async Task<(bool Success, string Message)> DeleteRoomAsync(int id)
     {

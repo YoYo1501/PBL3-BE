@@ -65,6 +65,14 @@ public class RoomController(IRoomService roomService) : ControllerBase
         return Ok(room);
     }
 
+    [HttpPost("sync-occupancy")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SyncOccupancy()
+    {
+        await roomService.SyncOccupancyFromActiveContractsAsync();
+        return Ok(new { message = "Da dong bo so nguoi o theo hop dong Active." });
+    }
+
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateRoom([FromBody] CreateRoomDto dto)

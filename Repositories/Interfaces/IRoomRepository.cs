@@ -12,4 +12,5 @@ public interface IRoomRepository
     Task Update(Room room);
     Task DeleteAsync(Room room);
     Task<bool> BuildingExistsAsync(int buildingId);
+    Task SyncOccupancyFromActiveContractsAsync();
 }
