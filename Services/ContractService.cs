@@ -24,6 +24,10 @@ public class ContractService(IContractRepository repo, INotificationService noti
         if (contract == null)
             return (false, "Bạn không có hợp đồng lưu trú hiệu lực.", null);
 
+        var existing = await repo.GetPendingRenewalAsync(studentId);
+        if (existing != null)
+            return (false, "Bạn đã có yêu cầu gia hạn đang chờ duyệt. Bạn có thể hủy yêu cầu trong lịch sử gia hạn nếu muốn chọn lại.", null);
+
         var daysRemaining = (contract.EndDate - DateTime.UtcNow).Days;
         if (daysRemaining > 30)
             return (false, "Hợp đồng chưa đến thời hạn gia hạn (còn hơn 30 ngày).", null);
@@ -42,11 +46,10 @@ public class ContractService(IContractRepository repo, INotificationService noti
             Id = p.Id,
             Name = p.Name,
             DurationMonths = p.DurationMonths,
-            NewEndDate = contract.EndDate.AddMonths(p.DurationMonths),
-            EstimatedPrice = contract.Price * p.DurationMonths
+            NewEndDate = contract.EndDate.AddMonths(p.DurationMonths)
         }).ToList();
 
-        return (true, "Lấy danh sách gói gia hạn thành công.", result);
+        return (true, "Lấy danh sách kỳ gia hạn thành công.", result);
     }
 
     public async Task<(bool Success, string Message)> SubmitRenewalAsync(int studentId, RenewalRequestDto dto)
@@ -62,7 +65,7 @@ public class ContractService(IContractRepository repo, INotificationService noti
         var package = (await repo.GetActivePackagesAsync())
             .FirstOrDefault(p => p.Id == dto.RenewalPackageId);
         if (package == null)
-            return (false, "Gói gia hạn không hợp lệ.");
+            return (false, "Kỳ gia hạn không hợp lệ.");
 
         var request = new RenewalRequest
         {
@@ -82,6 +85,28 @@ public class ContractService(IContractRepository repo, INotificationService noti
         );
 
         return (true, "Gửi yêu cầu gia hạn thành công! Vui lòng chờ admin duyệt.");
+    }
+
+    public async Task<List<RenewalResponseDto>> GetMyRenewalsAsync(int studentId)
+    {
+        var list = await repo.GetRenewalsByStudentAsync(studentId);
+        return list.Select(ToRenewalDto).ToList();
+    }
+
+    public async Task<(bool Success, string Message)> CancelRenewalAsync(int studentId, int requestId)
+    {
+        var request = await repo.GetRenewalByIdAsync(requestId);
+        if (request == null || request.StudentId != studentId)
+            return (false, "Không tìm thấy yêu cầu gia hạn.");
+
+        if (request.Status != "Pending")
+            return (false, "Chỉ có thể hủy yêu cầu gia hạn đang chờ duyệt.");
+
+        request.Status = "Cancelled";
+        await repo.UpdateRenewalAsync(request);
+        await repo.SaveChangesAsync();
+
+        return (true, "Đã hủy yêu cầu gia hạn.");
     }
 
     public async Task<List<RenewalResponseDto>> GetAllRenewalsAsync()

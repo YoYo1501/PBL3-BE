@@ -8,6 +8,7 @@ public interface IRegistrationRepository
     Task<List<Registration>> GetAllAsync();
     Task<(List<Registration> Items, int TotalCount)> GetPagedPendingAsync(int page, int pageSize);
     Task<bool> HasPendingRegistrationAsync(string citizenId);
+    Task<int> CountPendingByRoomAsync(int roomId);
     Task AddAsync(Registration registration);
     Task SaveChangesAsync();
     Task<List<Registration>> GetPendingAsync();   

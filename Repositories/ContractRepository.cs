@@ -43,6 +43,12 @@ public class ContractRepository(AppDbContext context) : IContractRepository
             .Include(r => r.RenewalPackage)
             .FirstOrDefaultAsync(r => r.Id == id);
 
+    public async Task<List<RenewalRequest>> GetRenewalsByStudentAsync(int studentId)
+        => await BuildRenewalQuery(null)
+            .Where(r => r.StudentId == studentId)
+            .OrderByDescending(r => r.RequestedAt)
+            .ToListAsync();
+
     public async Task<List<RenewalRequest>> GetAllRenewalsAsync()
         => await BuildRenewalQuery(null)
             .OrderByDescending(r => r.RequestedAt)

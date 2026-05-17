@@ -7,7 +7,7 @@ public interface IRoomService
 {
     Task<List<RoomDto>> GetAllRooms();
     Task<PagedResultDto<RoomDto>> GetPagedRoomsAsync(RoomListQueryDto query);
-    Task<List<RoomDto>> GetAvailableRooms();
+    Task<List<RoomDto>> GetAvailableRooms(string? registrationHoldToken = null);
     Task<RoomDto?> GetRoomByIdAsync(int id);
     Task<RoomDto?> GetMyRoomAsync(int studentId);
     Task<(bool Success, string Message, RoomDto? Data)> CreateRoomAsync(CreateRoomDto dto);
