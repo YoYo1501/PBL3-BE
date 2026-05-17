@@ -8,4 +8,5 @@ public class RevenueFilterDto : PagedQueryDto
     public DateTime EndDate { get; set; }
     public string? RoomCode { get; set; }
     public string? Period { get; set; }
+    public string? Status { get; set; }
 }
