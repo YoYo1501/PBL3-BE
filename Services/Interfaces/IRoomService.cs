@@ -14,4 +14,5 @@ public interface IRoomService
     Task<(bool Success, string Message)> UpdateRoomAsync(int id, UpdateRoomDto dto);
     Task UpdateRoom(Models.Entities.Room room);
     Task<(bool Success, string Message)> DeleteRoomAsync(int id);
+    Task SyncOccupancyFromActiveContractsAsync();
 }
