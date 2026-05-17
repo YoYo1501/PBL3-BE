@@ -18,4 +18,5 @@ public interface IInvoiceService
     Task<InvoiceDraftDto?> GetInvoiceByIdAsync(int id);
     Task<(bool Success, string Message)> PayInvoiceManuallyAsync(int id);
     Task<(bool Success, string Message)> RemindDebtAsync(string? period);
+    Task<(bool Success, string Message)> RemindUpcomingDueAsync(int beforeDueDays = 3);
 }

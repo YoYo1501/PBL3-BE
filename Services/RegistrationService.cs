@@ -306,6 +306,10 @@ AppDbContext _context) : IRegistrationService
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         { 
+        var shouldSendAccountInfo = false;
+        var approvedRoomCode = string.Empty;
+        var rejectionReason = string.Empty;
+
         // Lấy đơn đăng ký
         var registration = await _registrationRepo.GetByIdAsync(id);
         if (registration == null)
@@ -333,6 +337,8 @@ AppDbContext _context) : IRegistrationService
 
             if (student == null)
             {
+                shouldSendAccountInfo = true;
+
                 // 1. Tạo User (username = CCCD, password = CCCD)
                 var user = new User
                 {
@@ -395,6 +401,7 @@ AppDbContext _context) : IRegistrationService
             if (room.CurrentOccupancy >= room.Capacity)
                 room.Status = "Full";
 
+            approvedRoomCode = room.RoomCode;
             _context.Rooms.Update(room);
 
             // 5. Tạo hợp đồng
@@ -410,11 +417,6 @@ AppDbContext _context) : IRegistrationService
             };
             await _context.Contracts.AddAsync(contract);
 
-            if (student.User?.MustChangePassword == true)
-            {
-                // Gửi email thông báo tài khoản cho sinh viên mới
-                await _emailService.SendAccountInfoAsync(registration.Email, registration.FullName, registration.CitizenId);
-            }
         }
         else
         {
@@ -423,13 +425,38 @@ AppDbContext _context) : IRegistrationService
                     throw new BadRequestException("Vui lòng nhập lý do từ chối.");
 
                 registration.Status = "Rejected";
-            registration.RejectionReason = dto.RejectionReason;
+            rejectionReason = dto.RejectionReason.Trim();
+            registration.RejectionReason = rejectionReason;
         }
 
         _context.Registrations.Update(registration);
         await _context.SaveChangesAsync();
 
         await transaction.CommitAsync();
+
+            if (dto.IsApproved)
+            {
+                if (shouldSendAccountInfo)
+                {
+                    await _emailService.SendAccountInfoAsync(registration.Email, registration.FullName, registration.CitizenId);
+                }
+                else
+                {
+                    await _emailService.SendRegistrationApprovedAsync(
+                        registration.Email,
+                        registration.FullName,
+                        approvedRoomCode,
+                        registration.StartDate,
+                        registration.EndDate);
+                }
+            }
+            else
+            {
+                await _emailService.SendRegistrationRejectedAsync(
+                    registration.Email,
+                    registration.FullName,
+                    rejectionReason);
+            }
 
             var message = dto.IsApproved
             ? "Duyệt đơn thành công, hợp đồng đã được tạo."

@@ -3,6 +3,7 @@
 public class InvoiceDraftDto
 {
     public int Id { get; set; }
+    public string InvoiceCode { get; set; } = string.Empty;
     public string StudentName { get; set; } = string.Empty;
     public string RoomCode { get; set; } = string.Empty;
     public string Period { get; set; } = string.Empty;
@@ -12,6 +13,7 @@ public class InvoiceDraftDto
     public decimal TotalAmount { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime IssuedAt { get; set; }
+    public DateTime? DueDate { get; set; }
     public DateTime? PaidAt { get; set; }
     public string? PaymentMethod { get; set; }
     public string? TransactionCode { get; set; }

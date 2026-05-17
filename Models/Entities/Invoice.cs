@@ -13,6 +13,7 @@
         public decimal TotalAmount { get; set; }
         public string Status { get; set; } = "Unpaid";
         public DateTime IssuedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? DueDate { get; set; }
         public DateTime? PaidAt { get; set; }
         public string? PaymentMethod { get; set; }
         public string? TransactionCode { get; set; }

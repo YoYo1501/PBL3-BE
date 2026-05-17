@@ -5,6 +5,7 @@ using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace BackendAPI.Controllers;
 
@@ -22,6 +23,10 @@ public class PaymentsController(
         var invoice = await invoiceRepo.GetInvoiceByIdAsync(invoiceId);
         if (invoice == null)
             return NotFound(new { message = "Hóa đơn không tồn tại." });
+
+        var studentIdValue = User.FindFirstValue("StudentId");
+        if (!int.TryParse(studentIdValue, out var studentId) || invoice.StudentId != studentId)
+            return Forbid();
 
         if (invoice.Status == "Paid")
             return BadRequest(new { message = "Hóa đơn đã được thanh toán." });

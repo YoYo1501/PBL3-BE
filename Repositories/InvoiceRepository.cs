@@ -65,6 +65,24 @@ public class InvoiceRepository(AppDbContext context) : IInvoiceRepository
             .OrderByDescending(i => i.IssuedAt)
             .ToListAsync();
 
+    public async Task<List<Invoice>> GetUnpaidInvoicesDueBetweenAsync(DateTime fromInclusive, DateTime toInclusive)
+        => await context.Invoices
+            .Include(i => i.Student)
+            .Include(i => i.Room)
+            .Where(i => i.Status == "Unpaid"
+                && i.DueDate.HasValue
+                && i.DueDate.Value >= fromInclusive
+                && i.DueDate.Value <= toInclusive)
+            .OrderBy(i => i.DueDate)
+            .ToListAsync();
+
+    public async Task<bool> HasOverdueUnpaidInvoiceAsync(int studentId, DateTime now)
+        => await context.Invoices
+            .AnyAsync(i => i.StudentId == studentId
+                && i.Status == "Unpaid"
+                && i.DueDate.HasValue
+                && i.DueDate.Value < now);
+
     public async Task<(List<Invoice> Items, int TotalCount)> GetPagedInvoicesAsync(string? period, string? status, int page, int pageSize)
     {
         var query = BuildInvoiceQuery(period, status);

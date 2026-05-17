@@ -5,4 +5,5 @@ public class InvoiceSettingDto
     public string Period { get; set; } = string.Empty;
     public decimal ElectricPricePerKwh { get; set; }
     public decimal WaterPricePerM3 { get; set; }
+    public int DueDay { get; set; } = 15;
 }
