@@ -8,12 +8,20 @@ using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Collections.Concurrent;
 using System.Data;
 
 namespace BackendAPI.Services;
 
-public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _cache, AppDbContext _context, INotificationService _notificationService) : IRoomTransferService
+public class RoomTransferService(
+    IRoomTransferRepository _repo,
+    IRegistrationRepository _registrationRepo,
+    IMemoryCache _cache,
+    AppDbContext _context,
+    INotificationService _notificationService) : IRoomTransferService
 {
+    private static readonly ConcurrentDictionary<int, SemaphoreSlim> RoomHoldLocks = new();
+
     public async Task<(bool Success, string Message, List<RoomDto>? Rooms)> GetAvailableRoomsAsync(int studentId)
     {
         // Kiểm tra hợp đồng hiệu lực
@@ -38,47 +46,80 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
         // Lấy danh sách phòng trống cùng giới tính
         var rooms = await _repo.GetAvailableRoomsAsync(currentRoom.Building.GenderAllowed, currentRoom.Id);
 
-        var result = rooms.Select(r => new RoomDto
+        var result = new List<RoomDto>();
+        foreach (var r in rooms)
         {
-            Id = r.Id,
-            RoomCode = r.RoomCode,
-            RoomType = r.RoomType,
-            Capacity = r.Capacity,
-            CurrentOccupancy = r.CurrentOccupancy,
-            Status = r.Status,
-            BuildingCode = r.Building?.Code ?? string.Empty,
-            BuildingName = r.Building?.Name ?? string.Empty,
-            GenderAllowed = r.Building?.GenderAllowed ?? string.Empty
-        }).ToList();
+            var pendingToRoom =
+                await _repo.CountPendingToRoomAsync(r.Id) +
+                await _registrationRepo.CountPendingByRoomAsync(r.Id);
+            if (r.CurrentOccupancy + pendingToRoom >= r.Capacity)
+                continue;
+
+            result.Add(new RoomDto
+            {
+                Id = r.Id,
+                RoomCode = r.RoomCode,
+                RoomType = r.RoomType,
+                Capacity = r.Capacity,
+                CurrentOccupancy = r.CurrentOccupancy + pendingToRoom,
+                Status = r.Status,
+                BuildingCode = r.Building?.Code ?? string.Empty,
+                BuildingName = r.Building?.Name ?? string.Empty,
+                GenderAllowed = r.Building?.GenderAllowed ?? string.Empty
+            });
+        }
 
         return (true, "Lấy danh sách phòng thành công.", result);
     }
 
     public async Task<(bool Success, string Message)> HoldRoomAsync(int studentId, HoldRoomRequest dto)
     {
-        var cacheKey = $"hold_room_{dto.ToRoomId}";
+        var pendingTransfer = await _repo.GetPendingTransferAsync(studentId);
+        if (pendingTransfer != null)
+            return (false, "Bạn đang có yêu cầu chuyển phòng đang chờ duyệt. Vui lòng chờ xử lý hoặc hủy yêu cầu hiện tại trước khi tạo đơn mới.");
 
-        // Kiểm tra phòng đã bị giữ chỗ chưa
-        if (_cache.TryGetValue(cacheKey, out int holdingStudentId) && holdingStudentId != studentId)
-            return (false, "Phòng đang được giữ chỗ bởi sinh viên khác, vui lòng chọn phòng khác.");
+        var roomLock = RoomHoldLocks.GetOrAdd(dto.ToRoomId, _ => new SemaphoreSlim(1, 1));
+        await roomLock.WaitAsync();
+        try
+        {
+            var cacheKey = $"hold_room_{dto.ToRoomId}";
 
-        // Kiểm tra phòng còn chỗ không
-        var room = await _repo.GetRoomByIdAsync(dto.ToRoomId);
-        if (room == null)
-            return (false, "Phòng không tồn tại.");
-        if (room.CurrentOccupancy >= room.Capacity)
-            return (false, "Phòng đã đầy.");
+            // Kiểm tra phòng đã bị giữ chỗ chưa
+            if (_cache.TryGetValue(cacheKey, out int holdingStudentId) && holdingStudentId != studentId)
+                return (false, "Phòng đang được giữ chỗ bởi sinh viên khác, vui lòng chọn phòng khác.");
 
-        // Giữ chỗ 10 phút
-        _cache.Set(cacheKey, studentId, TimeSpan.FromMinutes(10));
+            // Kiểm tra phòng còn chỗ không, tính cả các đơn pending như chỗ đã đặt trước
+            var room = await _repo.GetRoomByIdAsync(dto.ToRoomId);
+            if (room == null)
+                return (false, "Phòng không tồn tại.");
 
-        return (true, "Giữ chỗ thành công! Bạn có 10 phút để xác nhận chuyển phòng.");
+            var pendingToRoom =
+                await _repo.CountPendingToRoomAsync(dto.ToRoomId) +
+                await _registrationRepo.CountPendingByRoomAsync(dto.ToRoomId);
+            if (room.CurrentOccupancy + pendingToRoom >= room.Capacity)
+                return (false, "Phòng đã hết chỗ trống do đang có yêu cầu chuyển phòng chờ duyệt.");
+
+            // Giữ chỗ 10 phút
+            _cache.Set(cacheKey, studentId, TimeSpan.FromMinutes(10));
+
+            return (true, "Giữ chỗ thành công! Bạn có 10 phút để xác nhận chuyển phòng.");
+        }
+        finally
+        {
+            roomLock.Release();
+        }
     }
 
     public async Task<(bool Success, string Message)> SubmitTransferAsync(int studentId, BackendAPI.Models.DTOs.RoomTransfer.Requests.RoomTransferRequest dto)
     {
         if (string.IsNullOrEmpty(dto.Reason) || dto.Reason.Length < 15)
             return (false, "Lý do chuyển phòng phải có ít nhất 15 ký tự.");
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        var pendingTransfer = await _repo.GetPendingTransferAsync(studentId);
+        if (pendingTransfer != null)
+            return (false, "Bạn đang có yêu cầu chuyển phòng đang chờ duyệt. Vui lòng chờ xử lý hoặc hủy yêu cầu hiện tại trước khi tạo đơn mới.");
 
         // Kiểm tra còn giữ chỗ không
         var cacheKey = $"hold_room_{dto.ToRoomId}";
@@ -94,6 +135,20 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
         if (semester == null)
             return (false, "Không tìm thấy học kỳ hiện tại.");
 
+        var transferCount = await _repo.CountTransferInSemesterAsync(studentId, semester.Id);
+        if (transferCount >= 1)
+            return (false, "Bạn đã có yêu cầu/chuyển phòng trong học kỳ này. Mỗi sinh viên chỉ được chuyển 1 lần/kỳ.");
+
+        var targetRoom = await _repo.GetRoomByIdAsync(dto.ToRoomId);
+        if (targetRoom == null)
+            return (false, "Phòng muốn chuyển đến không tồn tại.");
+
+        var pendingToRoom =
+            await _repo.CountPendingToRoomAsync(dto.ToRoomId) +
+            await _registrationRepo.CountPendingByRoomAsync(dto.ToRoomId);
+        if (targetRoom.CurrentOccupancy + pendingToRoom >= targetRoom.Capacity)
+            return (false, "Phòng đã hết chỗ trống do đang có yêu cầu chuyển phòng chờ duyệt.");
+
         // Tạo yêu cầu chuyển phòng
         var request = new BackendAPI.Models.Entities.RoomTransferRequest
         {
@@ -107,6 +162,7 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
 
         await _repo.AddAsync(request);
         await _repo.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         // Lấy thông tin sinh viên và phòng để hiển thị trong thông báo
         var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == studentId);
@@ -165,6 +221,7 @@ public class RoomTransferService(IRoomTransferRepository _repo, IMemoryCache _ca
 
             // Cập nhật hợp đồng
             contract.RoomId = transfer.ToRoomId;
+            contract.Price = toRoom.Price;
             await _repo.UpdateContractAsync(contract);
 
             transfer.Status = "Approved";

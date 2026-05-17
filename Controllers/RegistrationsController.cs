@@ -10,6 +10,16 @@ namespace BackendAPI.Controllers;
 [Authorize]
 public class RegistrationsController(IRegistrationService service, IOcrService ocrService) : ControllerBase
 {
+    private int GetUserId()
+    {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr))
+        {
+            throw new UnauthorizedAccessException("Người dùng chưa đăng nhập");
+        }
+        return int.Parse(userIdStr);
+    }
+
     [HttpPost("extract-cccd")]
     [AllowAnonymous]
     public async Task<IActionResult> ExtractCccdInfo(IFormFile file)
@@ -30,11 +40,29 @@ public class RegistrationsController(IRegistrationService service, IOcrService o
         }
     }
 
+    [HttpPost("hold-room")]
+    [AllowAnonymous]
+    public async Task<IActionResult> HoldRoom([FromBody] RegistrationRoomHoldRequest dto)
+    {
+        var (success, message, expiresAtUtc) = await service.HoldRoomAsync(dto);
+        if (!success) return BadRequest(new { message });
+        return Ok(new { message, expiresAtUtc });
+    }
+
     [HttpPost]
     [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegistrationRequestDto dto)
     {
         var (success, message, data) = await service.RegisterAsync(dto);
+        if (!success) return BadRequest(new { message });
+        return Ok(new { message, data });
+    }
+
+    [HttpPost("returning")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> RegisterReturning([FromBody] ReturningRegistrationRequestDto dto)
+    {
+        var (success, message, data) = await service.RegisterReturningAsync(GetUserId(), dto);
         if (!success) return BadRequest(new { message });
         return Ok(new { message, data });
     }

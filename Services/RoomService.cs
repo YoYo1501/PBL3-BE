@@ -1,3 +1,4 @@
+using BackendAPI.Helpers;
 using BackendAPI.Models.DTOs.Common;
 using BackendAPI.Models.DTOs.Room;
 using BackendAPI.Models.Entities;
@@ -6,7 +7,10 @@ using BackendAPI.Services.Interfaces;
 
 namespace BackendAPI.Services;
 
-public class RoomService(IRoomRepository roomRepository) : IRoomService
+public class RoomService(
+    IRoomRepository roomRepository,
+    IRegistrationRepository registrationRepository,
+    IRoomTransferRepository roomTransferRepository) : IRoomService
 {
     public async Task<List<RoomDto>> GetAllRooms()
     {
@@ -30,10 +34,23 @@ public class RoomService(IRoomRepository roomRepository) : IRoomService
         };
     }
 
-    public async Task<List<RoomDto>> GetAvailableRooms()
+    public async Task<List<RoomDto>> GetAvailableRooms(string? registrationHoldToken = null)
     {
         var rooms = await roomRepository.GetAll();
-        return rooms.Where(r => r.Status == "Available").Select(ToDto).ToList();
+        var result = new List<RoomDto>();
+        foreach (var room in rooms.Where(r => r.Status == "Available"))
+        {
+            var reservedSlots =
+                RegistrationRoomHoldStore.CountActiveHolds(room.Id, registrationHoldToken) +
+                await registrationRepository.CountPendingByRoomAsync(room.Id) +
+                await roomTransferRepository.CountPendingToRoomAsync(room.Id);
+
+            var dto = ToDto(room, reservedSlots);
+            if (dto.AvailableSlots > 0)
+                result.Add(dto);
+        }
+
+        return result;
     }
 
     public async Task<RoomDto?> GetRoomByIdAsync(int id)
@@ -110,7 +127,7 @@ public class RoomService(IRoomRepository roomRepository) : IRoomService
         return (true, "Cập nhật phòng thành công.");
     }
 
-    private static RoomDto ToDto(Room r) => new()
+    private static RoomDto ToDto(Room r, int temporaryHolds = 0) => new()
     {
         Id = r.Id,
         BuildingId = r.BuildingId,
@@ -118,7 +135,7 @@ public class RoomService(IRoomRepository roomRepository) : IRoomService
         RoomType = r.RoomType,
         Price = r.Price,
         Capacity = r.Capacity,
-        CurrentOccupancy = r.CurrentOccupancy,
+        CurrentOccupancy = Math.Min(r.Capacity, r.CurrentOccupancy + temporaryHolds),
         Status = r.Status,
         BuildingCode = r.Building.Code,
         BuildingName = r.Building.Name,

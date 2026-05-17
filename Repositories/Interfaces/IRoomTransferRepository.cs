@@ -6,6 +6,7 @@ namespace BackendAPI.Repositories.Interfaces
     {
         Task<Contract?> GetActiveContractAsync(int studentId);
         Task<int> CountTransferInSemesterAsync(int studentId, int semesterId);
+        Task<int> CountPendingToRoomAsync(int roomId);
         Task<SemesterPeriods?> GetCurrentSemesterAsync();
         Task<List<Room>> GetAvailableRoomsAsync(string gender, int excludeRoomId);
         Task<Room?> GetRoomByIdAsync(int roomId);

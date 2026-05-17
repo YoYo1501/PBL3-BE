@@ -48,6 +48,25 @@ public class StudentRequestRepository(AppDbContext _context) : IStudentRequestRe
         return await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
     }
 
+    public async Task<List<StudentRequest>> GetMaintenanceRequestsByRoomIdAsync(int roomId)
+    {
+        return await _context.StudentRequests
+            .Include(r => r.Student)
+                .ThenInclude(s => s.Contracts.Where(c => c.Status == "Active"))
+                    .ThenInclude(c => c.Room)
+            .Where(r =>
+                r.RequestType == "Maintenance"
+                && r.Student.Contracts.Any(c => c.Status == "Active" && c.RoomId == roomId))
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<bool> HasPendingRequestAsync(int studentId, string requestType)
+        => await _context.StudentRequests.AnyAsync(r =>
+            r.StudentId == studentId
+            && r.RequestType == requestType
+            && r.Status == "Pending");
+
     public async Task AddAsync(StudentRequest request)
         => await _context.StudentRequests.AddAsync(request);
 

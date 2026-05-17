@@ -2,6 +2,7 @@ using BackendAPI.Models.DTOs.Common;
 using BackendAPI.Models.DTOs.Receipt.Requests;
 using BackendAPI.Models.DTOs.Receipt.Responses;
 using BackendAPI.Models.Entities;
+using BackendAPI.Helpers;
 using BackendAPI.Services.Interfaces;
 using BackendAPI.Repositories.Interfaces;
 using OfficeOpenXml;
@@ -94,8 +95,8 @@ public class ReceiptService(IReceiptRepository receiptRepository) : IReceiptServ
             TotalAmount = invoice.TotalAmount,
             PaidAmount = receipt.PaidAmount,
             Status = receipt.Status,
-            IssuedAt = invoice.IssuedAt,
-            PaidAt = receipt.PaidAt,
+            IssuedAt = VietnamTime.FromUtc(invoice.IssuedAt),
+            PaidAt = VietnamTime.FromUtc(receipt.PaidAt),
             PaymentMethod = string.IsNullOrWhiteSpace(receipt.PaymentMethod) ? "Unknown" : receipt.PaymentMethod,
             TransactionCode = receipt.TransactionCode ?? string.Empty
         };

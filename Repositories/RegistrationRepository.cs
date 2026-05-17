@@ -48,7 +48,12 @@ public class RegistrationRepository : IRegistrationRepository
     public async Task<bool> HasPendingRegistrationAsync(string citizenId)
         => await _context.Registrations
             .AnyAsync(r => r.CitizenId == citizenId
-                && (r.Status == "Pending" || r.Status == "Approved"));
+                && r.Status == "Pending");
+
+    public async Task<int> CountPendingByRoomAsync(int roomId)
+        => await _context.Registrations
+            .CountAsync(r => r.RoomId == roomId
+                && r.Status == "Pending");
 
     public async Task AddAsync(Registration registration)
         => await _context.Registrations.AddAsync(registration);

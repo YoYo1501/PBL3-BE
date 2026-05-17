@@ -37,9 +37,9 @@ public class RoomController(IRoomService roomService) : ControllerBase
 
     [HttpGet("available")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAvailableRooms()
+    public async Task<IActionResult> GetAvailableRooms([FromQuery] string? registrationHoldToken)
     {
-        var rooms = await roomService.GetAvailableRooms();
+        var rooms = await roomService.GetAvailableRooms(registrationHoldToken);
         return Ok(rooms);
     }
 

@@ -54,11 +54,60 @@ namespace BackendAPI.Models.DTOs.Registration.Requests
         [DefaultValue(1)]
         public int RoomId { get; set; }
 
+        [StringLength(80)]
+        public string? RoomHoldToken { get; set; }
+
         [Required(ErrorMessage = "Ngày bắt đầu không được để trống")]
         public DateTime StartDate { get; set; }
 
         [Required(ErrorMessage = "Ngày kết thúc không được để trống")]
         public DateTime EndDate { get; set; }
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (EndDate <= StartDate)
+            {
+                yield return new ValidationResult(
+                    "Ngày kết thúc phải lớn hơn ngày bắt đầu",
+                    new[] { nameof(EndDate) }
+                );
+            }
+
+            if (StartDate.Date < DateTime.Today)
+            {
+                yield return new ValidationResult(
+                    "Ngày bắt đầu không được ở quá khứ",
+                    new[] { nameof(StartDate) }
+                );
+            }
+        }
+    }
+
+    public class RegistrationRoomHoldRequest
+    {
+        [Required(ErrorMessage = "Mã phòng không được để trống")]
+        [Range(1, int.MaxValue, ErrorMessage = "Mã phòng không hợp lệ")]
+        public int RoomId { get; set; }
+
+        [Required(ErrorMessage = "Mã giữ chỗ không được để trống")]
+        [StringLength(80)]
+        public string HoldToken { get; set; } = string.Empty;
+    }
+
+    public class ReturningRegistrationRequestDto : IValidatableObject
+    {
+        [Required(ErrorMessage = "Mã phòng không được để trống")]
+        [Range(1, int.MaxValue, ErrorMessage = "Mã phòng không hợp lệ")]
+        public int RoomId { get; set; }
+
+        [StringLength(80)]
+        public string? RoomHoldToken { get; set; }
+
+        [Required(ErrorMessage = "Ngày bắt đầu không được để trống")]
+        public DateTime StartDate { get; set; }
+
+        [Required(ErrorMessage = "Ngày kết thúc không được để trống")]
+        public DateTime EndDate { get; set; }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (EndDate <= StartDate)

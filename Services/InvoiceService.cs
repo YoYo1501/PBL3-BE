@@ -2,6 +2,7 @@ using BackendAPI.Models.DTOs.Common;
 using BackendAPI.Models.DTOs.Invoice.Requests;
 using BackendAPI.Models.DTOs.Invoice.Responses;
 using BackendAPI.Models.Entities;
+using BackendAPI.Helpers;
 using BackendAPI.Repositories.Interfaces;
 using BackendAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -241,8 +242,8 @@ public class InvoiceService(
             WaterFee = i.WaterFee,
             TotalAmount = i.TotalAmount,
             Status = i.Status,
-            IssuedAt = i.IssuedAt,
-            PaidAt = i.PaidAt,
+            IssuedAt = VietnamTime.FromUtc(i.IssuedAt),
+            PaidAt = VietnamTime.FromUtc(i.PaidAt),
             PaymentMethod = i.PaymentMethod,
             TransactionCode = i.TransactionCode
         }).ToList();
@@ -411,8 +412,8 @@ public class InvoiceService(
         WaterFee = i.WaterFee,
         TotalAmount = i.TotalAmount,
         Status = i.Status,
-        IssuedAt = i.IssuedAt,
-        PaidAt = i.PaidAt,
+        IssuedAt = VietnamTime.FromUtc(i.IssuedAt),
+        PaidAt = VietnamTime.FromUtc(i.PaidAt),
         PaymentMethod = i.PaymentMethod,
         TransactionCode = i.TransactionCode
     };

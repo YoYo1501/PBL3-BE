@@ -46,6 +46,25 @@ public class ContractsController(IContractService service) : ControllerBase
         return Ok(new { message });
     }
 
+    [HttpGet("renewals/my")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> GetMyRenewals()
+    {
+        var studentId = GetStudentId();
+        var list = await service.GetMyRenewalsAsync(studentId);
+        return Ok(list);
+    }
+
+    [HttpPut("renewals/{id}/cancel")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> CancelRenewal(int id)
+    {
+        var studentId = GetStudentId();
+        var (success, message) = await service.CancelRenewalAsync(studentId, id);
+        if (!success) return BadRequest(new { message });
+        return Ok(new { message });
+    }
+
     [HttpGet("renewals/pending")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllPending([FromQuery] RenewalListQueryDto query)

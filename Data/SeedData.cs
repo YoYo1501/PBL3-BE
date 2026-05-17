@@ -7,6 +7,9 @@ public static class SeedData
     public static async Task SeedAsync(AppDbContext context)
     {
         await BackfillRoomPricesAsync(context);
+        await BackfillVietnameseBuildingNamesAsync(context);
+        await BackfillRenewalTermsAsync(context);
+        await BackfillVietnameseStudentProfileTextAsync(context);
 
         if (context.Users.Any()) return;
 
@@ -117,10 +120,10 @@ public static class SeedData
     {
         return new Dictionary<string, Building>
         {
-            ["A"] = new() { Code = "A", Name = "Toa A", GenderAllowed = "Nam" },
-            ["B"] = new() { Code = "B", Name = "Toa B", GenderAllowed = "Nữ" },
-            ["C"] = new() { Code = "C", Name = "Toa C", GenderAllowed = "Nam" },
-            ["D"] = new() { Code = "D", Name = "Toa D", GenderAllowed = "Nữ" }
+            ["A"] = new() { Code = "A", Name = "Tòa A", GenderAllowed = "Nam" },
+            ["B"] = new() { Code = "B", Name = "Tòa B", GenderAllowed = "Nữ" },
+            ["C"] = new() { Code = "C", Name = "Tòa C", GenderAllowed = "Nam" },
+            ["D"] = new() { Code = "D", Name = "Tòa D", GenderAllowed = "Nữ" }
         };
     }
 
@@ -189,9 +192,9 @@ public static class SeedData
     {
         return new Dictionary<string, RenewalPackages>
         {
-            ["1ky"] = new() { Name = "1 Ky", DurationMonths = 5, IsActive = true },
-            ["2ky"] = new() { Name = "2 Ky", DurationMonths = 10, IsActive = true },
-            ["1nam"] = new() { Name = "1 Nam", DurationMonths = 12, IsActive = true }
+            ["1ky"] = new() { Name = "1 kỳ", DurationMonths = 4, IsActive = true },
+            ["2ky"] = new() { Name = "2 kỳ", DurationMonths = 8, IsActive = true },
+            ["1nam"] = new() { Name = "1 năm", DurationMonths = 12, IsActive = true }
         };
     }
 
@@ -199,18 +202,18 @@ public static class SeedData
     {
         return
         [
-            NewStudent(now, "SV001", "Nguyen Van An", "051206004401", "Nam", "0338055101", "nguyenvanan.sv@example.com", "123 Le Duan, Da Nang", "Nguyen Van Ba", "0905000001", "Bo"),
-            NewStudent(now, "SV002", "Tran Quoc Binh", "051206004402", "Nam", "0338055102", "tranquocbinh.sv@example.com", "45 Ong Ich Khiem, Da Nang", "Tran Thi Lan", "0905000002", "Me"),
-            NewStudent(now, "SV003", "Le Minh Cuong", "051206004403", "Nam", "0338055103", "leminhcuong.sv@example.com", "12 Nguyen Tri Phuong, Hue", "Le Van Son", "0905000003", "Bo"),
-            NewStudent(now, "SV004", "Pham Gia Duy", "051206004404", "Nam", "0338055104", "phamgiaduy.sv@example.com", "78 Tran Phu, Quang Nam", "Pham Thi Hoa", "0905000004", "Me"),
-            NewStudent(now, "SV005", "Vo Thanh Hieu", "051206004405", "Nam", "0338055105", "vothanhhieu.sv@example.com", "90 Hai Ba Trung, Quang Ngai", "Vo Van Hanh", "0905000005", "Chu"),
-            NewStudent(now, "SV006", "Do Duc Khanh", "051206004406", "Nam", "0338055106", "doduckhanh.sv@example.com", "15 Nguyen Van Linh, Da Nang", "Do Thi Tam", "0905000006", "Me"),
-            NewStudent(now, "SV007", "Nguyen Thi Lan", "051206004407", "Nữ", "0338055107", "nguyenthilan.sv@example.com", "22 Hoang Dieu, Da Nang", "Nguyen Van Nho", "0905000007", "Bo"),
-            NewStudent(now, "SV008", "Tran Thi My", "051206004408", "Nữ", "0338055108", "tranthimy.sv@example.com", "91 Hai Phong, Hue", "Tran Thi Nga", "0905000008", "Me"),
-            NewStudent(now, "SV009", "Le Ngoc Thao", "051206004409", "Nữ", "0338055109", "lengocthao.sv@example.com", "27 Le Loi, Quang Tri", "Le Van Tuan", "0905000009", "Bo"),
-            NewStudent(now, "SV010", "Pham Thu Uyen", "051206004410", "Nữ", "0338055110", "phamthuyen.sv@example.com", "66 Phan Chau Trinh, Da Nang", "Pham Thi Hanh", "0905000010", "Chi"),
-            NewStudent(now, "SV011", "Vo Bao Vy", "051206004411", "Nữ", "0338055111", "vobaovy.sv@example.com", "11 Ly Thuong Kiet, Quang Nam", "Vo Van Dung", "0905000011", "Bo"),
-            NewStudent(now, "SV012", "Hoang Gia Yen", "051206004412", "Nữ", "0338055112", "hoanggiayen.sv@example.com", "77 Hung Vuong, Da Nang", "Hoang Thi Mai", "0905000012", "Me")
+            NewStudent(now, "SV001", "Nguyễn Văn An", "051206004401", "Nam", "0338055101", "nguyenvanan.sv@example.com", "123 Lê Duẩn, Đà Nẵng", "Nguyễn Văn Ba", "0905000001", "Bố"),
+            NewStudent(now, "SV002", "Trần Quốc Bình", "051206004402", "Nam", "0338055102", "tranquocbinh.sv@example.com", "45 Ông Ích Khiêm, Đà Nẵng", "Trần Thị Lan", "0905000002", "Mẹ"),
+            NewStudent(now, "SV003", "Lê Minh Cường", "051206004403", "Nam", "0338055103", "leminhcuong.sv@example.com", "12 Nguyễn Tri Phương, Huế", "Lê Văn Sơn", "0905000003", "Bố"),
+            NewStudent(now, "SV004", "Phạm Gia Duy", "051206004404", "Nam", "0338055104", "phamgiaduy.sv@example.com", "78 Trần Phú, Quảng Nam", "Phạm Thị Hoa", "0905000004", "Mẹ"),
+            NewStudent(now, "SV005", "Võ Thanh Hiếu", "051206004405", "Nam", "0338055105", "vothanhhieu.sv@example.com", "90 Hai Bà Trưng, Quảng Ngãi", "Võ Văn Hạnh", "0905000005", "Chú"),
+            NewStudent(now, "SV006", "Đỗ Đức Khánh", "051206004406", "Nam", "0338055106", "doduckhanh.sv@example.com", "15 Nguyễn Văn Linh, Đà Nẵng", "Đỗ Thị Tâm", "0905000006", "Mẹ"),
+            NewStudent(now, "SV007", "Nguyễn Thị Lan", "051206004407", "Nữ", "0338055107", "nguyenthilan.sv@example.com", "22 Hoàng Diệu, Đà Nẵng", "Nguyễn Văn Nhớ", "0905000007", "Bố"),
+            NewStudent(now, "SV008", "Trần Thị Mỹ", "051206004408", "Nữ", "0338055108", "tranthimy.sv@example.com", "91 Hải Phòng, Huế", "Trần Thị Nga", "0905000008", "Mẹ"),
+            NewStudent(now, "SV009", "Lê Ngọc Thảo", "051206004409", "Nữ", "0338055109", "lengocthao.sv@example.com", "27 Lê Lợi, Quảng Trị", "Lê Văn Tuấn", "0905000009", "Bố"),
+            NewStudent(now, "SV010", "Phạm Thu Uyên", "051206004410", "Nữ", "0338055110", "phamthuyen.sv@example.com", "66 Phan Châu Trinh, Đà Nẵng", "Phạm Thị Hạnh", "0905000010", "Chị"),
+            NewStudent(now, "SV011", "Võ Bảo Vy", "051206004411", "Nữ", "0338055111", "vobaovy.sv@example.com", "11 Lý Thường Kiệt, Quảng Nam", "Võ Văn Dũng", "0905000011", "Bố"),
+            NewStudent(now, "SV012", "Hoàng Gia Yến", "051206004412", "Nữ", "0338055112", "hoanggiayen.sv@example.com", "77 Hùng Vương, Đà Nẵng", "Hoàng Thị Mai", "0905000012", "Mẹ")
         ];
     }
 
@@ -334,9 +337,9 @@ public static class SeedData
             NewApprovedRegistration("REG_20260101_0001", map["SV001"], rooms["A101"], current.StartDate, current.EndDate, now.AddMonths(-5)),
             NewApprovedRegistration("REG_20260101_0002", map["SV007"], rooms["B101"], current.StartDate, current.EndDate, now.AddMonths(-5)),
             NewApprovedRegistration("REG_20260101_0003", map["SV012"], rooms["D202"], current.StartDate, current.EndDate, now.AddMonths(-1)),
-            NewPendingRegistration("REG_20260417_0004", "Bui Van Long", "048201002345", "Nam", "0987654321", "buivanlong.guest@example.com", "456 Duong XYZ, Ha Noi", "Bui Thi Hoa", "0999888777", "Me", rooms["A103"], upcoming.StartDate, upcoming.EndDate, now.AddDays(-3)),
-            NewPendingRegistration("REG_20260417_0005", "Nguyen Thi Hanh", "048201002346", "Nữ", "0987654322", "nguyenthihanh.guest@example.com", "123 Tran Hung Dao, Quang Nam", "Nguyen Van Minh", "0999888778", "Bo", rooms["B102"], upcoming.StartDate, upcoming.EndDate, now.AddDays(-2)),
-            NewRejectedRegistration("REG_20260417_0006", "Le Hoang Phuc", "048201002347", "Nam", "0987654323", "lehoangphuc.guest@example.com", "67 Ly Thai To, Da Nang", "Le Thi Thu", "0999888779", "Chi", rooms["A102"], upcoming.StartDate, upcoming.EndDate, "CCCD da ton tai trong he thong.", now.AddDays(-1))
+            NewPendingRegistration("REG_20260417_0004", "Bùi Văn Long", "048201002345", "Nam", "0987654321", "buivanlong.guest@example.com", "456 Đường XYZ, Hà Nội", "Bùi Thị Hoa", "0999888777", "Mẹ", rooms["A103"], upcoming.StartDate, upcoming.EndDate, now.AddDays(-3)),
+            NewPendingRegistration("REG_20260417_0005", "Nguyễn Thị Hạnh", "048201002346", "Nữ", "0987654322", "nguyenthihanh.guest@example.com", "123 Trần Hưng Đạo, Quảng Nam", "Nguyễn Văn Minh", "0999888778", "Bố", rooms["B102"], upcoming.StartDate, upcoming.EndDate, now.AddDays(-2)),
+            NewRejectedRegistration("REG_20260417_0006", "Lê Hoàng Phúc", "048201002347", "Nam", "0987654323", "lehoangphuc.guest@example.com", "67 Lý Thái Tổ, Đà Nẵng", "Lê Thị Thu", "0999888779", "Chị", rooms["A102"], upcoming.StartDate, upcoming.EndDate, "CCCD đã tồn tại trong hệ thống.", now.AddDays(-1))
         ];
     }
 
@@ -803,6 +806,184 @@ public static class SeedData
         }
 
         await context.SaveChangesAsync();
+    }
+
+    private static async Task BackfillVietnameseBuildingNamesAsync(AppDbContext context)
+    {
+        var buildingNames = new Dictionary<string, string>
+        {
+            ["A"] = "Tòa A",
+            ["B"] = "Tòa B",
+            ["C"] = "Tòa C",
+            ["D"] = "Tòa D"
+        };
+
+        var buildingCodes = buildingNames.Keys.ToList();
+        var changed = false;
+
+        foreach (var building in context.Buildings.Where(b => buildingCodes.Contains(b.Code)).ToList())
+        {
+            var newName = buildingNames[building.Code];
+            if (building.Name == newName)
+            {
+                continue;
+            }
+
+            building.Name = newName;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static async Task BackfillRenewalTermsAsync(AppDbContext context)
+    {
+        var packageTerms = new Dictionary<string, (string Name, int DurationMonths)>
+        {
+            ["1 Ky"] = ("1 kỳ", 4),
+            ["1 kỳ"] = ("1 kỳ", 4),
+            ["2 Ky"] = ("2 kỳ", 8),
+            ["2 kỳ"] = ("2 kỳ", 8),
+            ["1 Nam"] = ("1 năm", 12),
+            ["1 năm"] = ("1 năm", 12)
+        };
+
+        var packages = context.RenewalPackages.ToList();
+        if (packages.Count == 0) return;
+
+        var changed = false;
+
+        foreach (var package in packages)
+        {
+            if (!packageTerms.TryGetValue(package.Name.Trim(), out var term))
+            {
+                continue;
+            }
+
+            if (package.Name != term.Name)
+            {
+                package.Name = term.Name;
+                changed = true;
+            }
+
+            if (package.DurationMonths != term.DurationMonths)
+            {
+                package.DurationMonths = term.DurationMonths;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static async Task BackfillVietnameseStudentProfileTextAsync(AppDbContext context)
+    {
+        var studentUpdates = new Dictionary<string, (string OldName, string NewName, string OldAddress, string NewAddress)>
+        {
+            ["051206004401"] = ("Nguyen Van An", "Nguyễn Văn An", "123 Le Duan, Da Nang", "123 Lê Duẩn, Đà Nẵng"),
+            ["051206004402"] = ("Tran Quoc Binh", "Trần Quốc Bình", "45 Ong Ich Khiem, Da Nang", "45 Ông Ích Khiêm, Đà Nẵng"),
+            ["051206004403"] = ("Le Minh Cuong", "Lê Minh Cường", "12 Nguyen Tri Phuong, Hue", "12 Nguyễn Tri Phương, Huế"),
+            ["051206004404"] = ("Pham Gia Duy", "Phạm Gia Duy", "78 Tran Phu, Quang Nam", "78 Trần Phú, Quảng Nam"),
+            ["051206004405"] = ("Vo Thanh Hieu", "Võ Thanh Hiếu", "90 Hai Ba Trung, Quang Ngai", "90 Hai Bà Trưng, Quảng Ngãi"),
+            ["051206004406"] = ("Do Duc Khanh", "Đỗ Đức Khánh", "15 Nguyen Van Linh, Da Nang", "15 Nguyễn Văn Linh, Đà Nẵng"),
+            ["051206004407"] = ("Nguyen Thi Lan", "Nguyễn Thị Lan", "22 Hoang Dieu, Da Nang", "22 Hoàng Diệu, Đà Nẵng"),
+            ["051206004408"] = ("Tran Thi My", "Trần Thị Mỹ", "91 Hai Phong, Hue", "91 Hải Phòng, Huế"),
+            ["051206004409"] = ("Le Ngoc Thao", "Lê Ngọc Thảo", "27 Le Loi, Quang Tri", "27 Lê Lợi, Quảng Trị"),
+            ["051206004410"] = ("Pham Thu Uyen", "Phạm Thu Uyên", "66 Phan Chau Trinh, Da Nang", "66 Phan Châu Trinh, Đà Nẵng"),
+            ["051206004411"] = ("Vo Bao Vy", "Võ Bảo Vy", "11 Ly Thuong Kiet, Quang Nam", "11 Lý Thường Kiệt, Quảng Nam"),
+            ["051206004412"] = ("Hoang Gia Yen", "Hoàng Gia Yến", "77 Hung Vuong, Da Nang", "77 Hùng Vương, Đà Nẵng")
+        };
+
+        var citizenIds = studentUpdates.Keys.ToList();
+        var changed = false;
+
+        foreach (var student in context.Students.Where(s => citizenIds.Contains(s.CitizenId)).ToList())
+        {
+            var update = studentUpdates[student.CitizenId];
+            changed |= ReplaceIfCurrentValue(student.FullName, update.OldName, update.NewName, value => student.FullName = value);
+            changed |= ReplaceIfCurrentValue(student.PermanentAddress, update.OldAddress, update.NewAddress, value => student.PermanentAddress = value);
+        }
+
+        foreach (var user in context.Users.Where(u => citizenIds.Contains(u.CitizenId)).ToList())
+        {
+            var update = studentUpdates[user.CitizenId];
+            changed |= ReplaceIfCurrentValue(user.FullName, update.OldName, update.NewName, value => user.FullName = value);
+        }
+
+        var relativeUpdates = new Dictionary<string, (string OldName, string NewName, string OldRelationship, string NewRelationship)>
+        {
+            ["0905000001"] = ("Nguyen Van Ba", "Nguyễn Văn Ba", "Bo", "Bố"),
+            ["0905000002"] = ("Tran Thi Lan", "Trần Thị Lan", "Me", "Mẹ"),
+            ["0905000003"] = ("Le Van Son", "Lê Văn Sơn", "Bo", "Bố"),
+            ["0905000004"] = ("Pham Thi Hoa", "Phạm Thị Hoa", "Me", "Mẹ"),
+            ["0905000005"] = ("Vo Van Hanh", "Võ Văn Hạnh", "Chu", "Chú"),
+            ["0905000006"] = ("Do Thi Tam", "Đỗ Thị Tâm", "Me", "Mẹ"),
+            ["0905000007"] = ("Nguyen Van Nho", "Nguyễn Văn Nhớ", "Bo", "Bố"),
+            ["0905000008"] = ("Tran Thi Nga", "Trần Thị Nga", "Me", "Mẹ"),
+            ["0905000009"] = ("Le Van Tuan", "Lê Văn Tuấn", "Bo", "Bố"),
+            ["0905000010"] = ("Pham Thi Hanh", "Phạm Thị Hạnh", "Chi", "Chị"),
+            ["0905000011"] = ("Vo Van Dung", "Võ Văn Dũng", "Bo", "Bố"),
+            ["0905000012"] = ("Hoang Thi Mai", "Hoàng Thị Mai", "Me", "Mẹ")
+        };
+
+        var relativePhones = relativeUpdates.Keys.ToList();
+        foreach (var relative in context.Relatives.Where(r => relativePhones.Contains(r.Phone)).ToList())
+        {
+            var update = relativeUpdates[relative.Phone];
+            changed |= ReplaceIfCurrentValue(relative.FullName, update.OldName, update.NewName, value => relative.FullName = value);
+            changed |= ReplaceIfCurrentValue(relative.Relationship, update.OldRelationship, update.NewRelationship, value => relative.Relationship = value);
+        }
+
+        var registrationUpdates = new Dictionary<string, (string OldName, string NewName, string OldAddress, string NewAddress, string OldRelativeName, string NewRelativeName, string OldRelationship, string NewRelationship, string? OldReason, string? NewReason)>
+        {
+            ["REG_20260417_0004"] = ("Bui Van Long", "Bùi Văn Long", "456 Duong XYZ, Ha Noi", "456 Đường XYZ, Hà Nội", "Bui Thi Hoa", "Bùi Thị Hoa", "Me", "Mẹ", null, null),
+            ["REG_20260417_0005"] = ("Nguyen Thi Hanh", "Nguyễn Thị Hạnh", "123 Tran Hung Dao, Quang Nam", "123 Trần Hưng Đạo, Quảng Nam", "Nguyen Van Minh", "Nguyễn Văn Minh", "Bo", "Bố", null, null),
+            ["REG_20260417_0006"] = ("Le Hoang Phuc", "Lê Hoàng Phúc", "67 Ly Thai To, Da Nang", "67 Lý Thái Tổ, Đà Nẵng", "Le Thi Thu", "Lê Thị Thu", "Chi", "Chị", "CCCD da ton tai trong he thong.", "CCCD đã tồn tại trong hệ thống.")
+        };
+
+        var registrationCodes = registrationUpdates.Keys.ToList();
+        foreach (var registration in context.Registrations.Where(r => registrationCodes.Contains(r.RegistrationCode)).ToList())
+        {
+            var update = registrationUpdates[registration.RegistrationCode];
+            changed |= ReplaceIfCurrentValue(registration.FullName, update.OldName, update.NewName, value => registration.FullName = value);
+            changed |= ReplaceIfCurrentValue(registration.PermanentAddress, update.OldAddress, update.NewAddress, value => registration.PermanentAddress = value);
+            changed |= ReplaceIfCurrentValue(registration.RelativeName, update.OldRelativeName, update.NewRelativeName, value => registration.RelativeName = value);
+            changed |= ReplaceIfCurrentValue(registration.Relationship, update.OldRelationship, update.NewRelationship, value => registration.Relationship = value);
+            changed |= ReplaceNullableIfCurrentValue(registration.RejectionReason, update.OldReason, update.NewReason, value => registration.RejectionReason = value);
+        }
+
+        if (changed)
+        {
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static bool ReplaceIfCurrentValue(string currentValue, string expectedValue, string newValue, Action<string> assign)
+    {
+        if (!string.Equals(currentValue, expectedValue, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        assign(newValue);
+        return true;
+    }
+
+    private static bool ReplaceNullableIfCurrentValue(string? currentValue, string? expectedValue, string? newValue, Action<string?> assign)
+    {
+        if (!string.Equals(currentValue, expectedValue, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        assign(newValue);
+        return true;
     }
 
     private static decimal GetDefaultRoomPrice(int capacity)

@@ -9,6 +9,8 @@ public interface IContractService
     Task<(bool Success, string Message, ContractResponseDto? Data)> GetMyContractAsync(int studentId);
     Task<(bool Success, string Message, List<RenewalPackageResponseDto>? Packages)> GetRenewalPackagesAsync(int studentId);
     Task<(bool Success, string Message)> SubmitRenewalAsync(int studentId, RenewalRequestDto dto);
+    Task<List<RenewalResponseDto>> GetMyRenewalsAsync(int studentId);
+    Task<(bool Success, string Message)> CancelRenewalAsync(int studentId, int requestId);
     Task<List<RenewalResponseDto>> GetAllRenewalsAsync();
     Task<List<RenewalResponseDto>> GetAllPendingRenewalsAsync();
     Task<PagedResultDto<RenewalResponseDto>> GetPagedPendingRenewalsAsync(RenewalListQueryDto query);

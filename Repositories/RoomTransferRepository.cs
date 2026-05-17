@@ -28,6 +28,11 @@ public class RoomTransferRepository : IRoomTransferRepository
                     || r.Status == "Approved"
                     || r.Status == "Completed"));
 
+    public async Task<int> CountPendingToRoomAsync(int roomId)
+        => await _context.RoomTransferRequests
+            .CountAsync(r => r.ToRoomId == roomId
+                && r.Status == "Pending");
+
     public async Task<SemesterPeriods?> GetCurrentSemesterAsync()
     {
         var now = DateTime.UtcNow;
