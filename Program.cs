@@ -57,6 +57,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
+app.UseMiddleware<OverdueInvoiceLockMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 

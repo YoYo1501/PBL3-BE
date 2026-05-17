@@ -122,12 +122,16 @@ public class InvoiceService(
         if (dto.ElectricPricePerKwh <= 0 || dto.WaterPricePerM3 <= 0)
             return (false, "Giá điện và giá nước phải lớn hơn 0.", null);
 
+        if (dto.DueDay < 1 || dto.DueDay > 31)
+            return (false, "Ngay han thanh toan phai nam trong khoang 1 den 31.", null);
+
         var readings = await repo.GetReadingsByPeriodAsync(dto.Period);
         if (!readings.Any())
             return (false, $"Không có dữ liệu điện nước cho kỳ {dto.Period}.", null);
 
         var drafts = new List<InvoiceDraftDto>();
         var skippedExistingInvoices = 0;
+        var dueDate = CalculateDueDate(dto.Period, dto.DueDay);
 
         foreach (var reading in readings)
         {
@@ -162,7 +166,8 @@ public class InvoiceService(
                     ElectricFee = electricFee,
                     WaterFee = waterFee,
                     TotalAmount = total,
-                    Status = "Draft"
+                    Status = "Draft",
+                    DueDate = dueDate
                 };
 
                 await repo.AddInvoiceAsync(invoice);
@@ -175,7 +180,8 @@ public class InvoiceService(
                     ElectricFee = electricFee,
                     WaterFee = waterFee,
                     TotalAmount = total,
-                    Status = "Draft"
+                    Status = "Draft",
+                    DueDate = dueDate
                 });
             }
         }
@@ -221,6 +227,7 @@ public class InvoiceService(
         {
             invoice.Status = "Unpaid";
             invoice.IssuedAt = DateTime.UtcNow;
+            invoice.DueDate ??= CalculateDueDate(invoice.Period, 15);
             await repo.UpdateInvoiceAsync(invoice);
         }
 
@@ -234,6 +241,7 @@ public class InvoiceService(
         return list.Select(i => new InvoiceDraftDto
         {
             Id = i.Id,
+            InvoiceCode = BuildInvoiceCode(i),
             StudentName = i.Student?.FullName ?? string.Empty,
             RoomCode = i.Room.RoomCode,
             Period = i.Period,
@@ -243,6 +251,7 @@ public class InvoiceService(
             TotalAmount = i.TotalAmount,
             Status = i.Status,
             IssuedAt = VietnamTime.FromUtc(i.IssuedAt),
+            DueDate = i.DueDate,
             PaidAt = VietnamTime.FromUtc(i.PaidAt),
             PaymentMethod = i.PaymentMethod,
             TransactionCode = i.TransactionCode
@@ -273,7 +282,9 @@ public class InvoiceService(
         worksheet.Cells[1, 8].Value = "Trạng thái";
         worksheet.Cells[1, 9].Value = "Ngày tạo";
 
-        using (var range = worksheet.Cells[1, 1, 1, 9])
+        worksheet.Cells[1, 10].Value = "Han thanh toan";
+
+        using (var range = worksheet.Cells[1, 1, 1, 10])
         {
             range.Style.Font.Bold = true;
             range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
@@ -292,6 +303,7 @@ public class InvoiceService(
             worksheet.Cells[row, 7].Value = invoice.TotalAmount;
             worksheet.Cells[row, 8].Value = GetInvoiceStatusLabel(invoice.Status);
             worksheet.Cells[row, 9].Value = invoice.IssuedAt.ToString("dd/MM/yyyy HH:mm:ss");
+            worksheet.Cells[row, 10].Value = (invoice.DueDate ?? CalculateDueDate(invoice.Period, 15)).ToString("dd/MM/yyyy");
             row++;
         }
 
@@ -401,9 +413,41 @@ public class InvoiceService(
         return (true, $"Đã gửi thông báo nhắc nợ thành công cho {count} sinh viên.");
     }
 
+    public async Task<(bool Success, string Message)> RemindUpcomingDueAsync(int beforeDueDays = 3)
+    {
+        if (beforeDueDays < 0 || beforeDueDays > 30)
+            return (false, "So ngay nhac truoc han phai nam trong khoang 0 den 30.");
+
+        var today = DateTime.UtcNow.Date;
+        var toDate = today.AddDays(beforeDueDays).AddDays(1).AddTicks(-1);
+        var invoices = await repo.GetUnpaidInvoicesDueBetweenAsync(today, toDate);
+
+        if (!invoices.Any())
+            return (false, "Khong co hoa don nao sap den han can nhac.");
+
+        var count = 0;
+        foreach (var invoice in invoices)
+        {
+            if (invoice.Student?.UserId == null || invoice.DueDate == null)
+                continue;
+
+            var daysLeft = Math.Max(0, (invoice.DueDate.Value.Date - today).Days);
+            await notificationService.CreateAsync(new BackendAPI.Models.DTOs.Notification.Requests.CreateNotificationDto
+            {
+                UserId = invoice.Student.UserId,
+                Title = "Thong bao hoa don sap den han",
+                Message = $"Hoa don ky {invoice.Period} se den han vao ngay {invoice.DueDate:dd/MM/yyyy} (con {daysLeft} ngay). Tong so tien la {invoice.TotalAmount:N0} VND. Vui long thanh toan dung han."
+            });
+            count++;
+        }
+
+        return (true, $"Da gui thong bao sap den han cho {count} sinh vien.");
+    }
+
     private static InvoiceDraftDto ToDto(Invoice i) => new()
     {
         Id = i.Id,
+        InvoiceCode = BuildInvoiceCode(i),
         StudentName = i.Student?.FullName ?? "",
         RoomCode = i.Room?.RoomCode ?? "",
         Period = i.Period,
@@ -413,6 +457,7 @@ public class InvoiceService(
         TotalAmount = i.TotalAmount,
         Status = i.Status,
         IssuedAt = VietnamTime.FromUtc(i.IssuedAt),
+        DueDate = i.DueDate,
         PaidAt = VietnamTime.FromUtc(i.PaidAt),
         PaymentMethod = i.PaymentMethod,
         TransactionCode = i.TransactionCode
@@ -423,6 +468,40 @@ public class InvoiceService(
 
     private static bool IsValidPeriod(string period)
         => Regex.IsMatch(period, @"^\d{4}-(0[1-9]|1[0-2])$");
+
+    private static string BuildInvoiceCode(Invoice invoice)
+    {
+        var period = invoice.Period;
+        var yearMonth = Regex.Match(period, @"^(?<year>\d{4})[-/](?<month>\d{1,2})$");
+        if (yearMonth.Success)
+        {
+            period = $"{yearMonth.Groups["year"].Value}{int.Parse(yearMonth.Groups["month"].Value):D2}";
+        }
+        else
+        {
+            var monthYear = Regex.Match(period, @"^(?<month>\d{1,2})[-/](?<year>\d{4})$");
+            period = monthYear.Success
+                ? $"{monthYear.Groups["year"].Value}{int.Parse(monthYear.Groups["month"].Value):D2}"
+                : period
+                    .Replace("-", string.Empty, StringComparison.Ordinal)
+                    .Replace("/", string.Empty, StringComparison.Ordinal)
+                    .Replace(" ", string.Empty, StringComparison.Ordinal);
+        }
+
+        if (string.IsNullOrWhiteSpace(period))
+            period = invoice.IssuedAt.ToString("yyyyMM");
+
+        return $"HD-{period}-{invoice.Id:D6}";
+    }
+
+    private static DateTime CalculateDueDate(string period, int dueDay)
+    {
+        var year = int.Parse(period[..4]);
+        var month = int.Parse(period[5..7]);
+        var maxDay = DateTime.DaysInMonth(year, month);
+        var day = Math.Clamp(dueDay, 1, maxDay);
+        return new DateTime(year, month, day, 23, 59, 59, DateTimeKind.Utc);
+    }
 
     private static string GetInvoiceStatusLabel(string? status) => status switch
     {

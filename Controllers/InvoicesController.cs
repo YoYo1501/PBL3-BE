@@ -91,6 +91,15 @@ public class InvoicesController(IInvoiceService service) : ControllerBase
         return Ok(new { message });
     }
 
+    [HttpPost("remind-upcoming-due")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+    public async Task<IActionResult> RemindUpcomingDue([FromQuery] int beforeDueDays = 3)
+    {
+        var (success, message) = await service.RemindUpcomingDueAsync(beforeDueDays);
+        if (!success) return BadRequest(new { message });
+        return Ok(new { message });
+    }
+
     [HttpGet("my")]
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Student")]
     public async Task<IActionResult> GetMyInvoices()
