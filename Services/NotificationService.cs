@@ -27,10 +27,59 @@ public class NotificationService(INotificationRepository repo, AppDbContext cont
         CreatedAt = notification.CreatedAt
     };
 
+    private static DateTime ToSecond(DateTime value)
+        => new(value.Year, value.Month, value.Day, value.Hour, value.Minute, value.Second, value.Kind);
+
+    private static List<NotificationResponseDto> ToSentHistoryDtos(IEnumerable<Notification> notifications)
+        => notifications
+            .GroupBy(n => new
+            {
+                n.Title,
+                n.Message,
+                CreatedAt = ToSecond(n.CreatedAt)
+            })
+            .Select(group =>
+            {
+                var newest = group.OrderByDescending(n => n.CreatedAt).First();
+                if (group.Count() == 1) return ToDto(newest);
+
+                return new NotificationResponseDto
+                {
+                    Id = newest.Id,
+                    UserId = 0,
+                    RecipientName = "Tất cả sinh viên",
+                    IsBroadcast = true,
+                    Title = newest.Title,
+                    Message = newest.Message,
+                    IsRead = group.All(n => n.IsRead),
+                    CreatedAt = newest.CreatedAt
+                };
+            })
+            .OrderByDescending(n => n.CreatedAt)
+            .ToList();
+
+    private async Task<List<Notification>> GetSentHistoryBatchAsync(Notification notification)
+    {
+        var sentAt = ToSecond(notification.CreatedAt);
+        var sentBefore = sentAt.AddSeconds(1);
+
+        return await context.Notifications
+            .Include(n => n.User)
+            .ThenInclude(u => u.Student)
+            .Where(n =>
+                n.User.Role == "Student"
+                && n.Title == notification.Title
+                && n.Message == notification.Message
+                && n.CreatedAt >= sentAt
+                && n.CreatedAt < sentBefore)
+            .ToListAsync();
+    }
+
     public async Task<(bool Success, string Message, NotificationResponseDto? Data)> CreateAsync(CreateNotificationDto dto)
     {
         if (dto.SendToAllStudents)
         {
+            var sentAt = DateTime.UtcNow;
             var studentIds = await context.Users
                 .Where(u => u.Role == "Student" && u.IsActive)
                 .Select(u => u.Id)
@@ -46,7 +95,7 @@ public class NotificationService(INotificationRepository repo, AppDbContext cont
                     UserId = studentId,
                     Title = dto.Title,
                     Message = dto.Message,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = sentAt,
                     IsRead = false
                 });
             }
@@ -103,13 +152,24 @@ public class NotificationService(INotificationRepository repo, AppDbContext cont
         var existing = await repo.GetByIdAsync(id);
         if (existing == null) throw new BadRequestException("Thong bao khong ton tai");
 
-        existing.Title = dto.Title;
-        existing.Message = dto.Message;
+        var batch = await GetSentHistoryBatchAsync(existing);
+        if (batch.Count <= 1) batch = [existing];
 
-        repo.Update(existing);
+        foreach (var notification in batch)
+        {
+            notification.Title = dto.Title;
+            notification.Message = dto.Message;
+            repo.Update(notification);
+        }
+
         await repo.SaveChangesAsync();
 
-        return (true, "Cap nhat thong bao thanh cong", ToDto(existing));
+        var data = ToSentHistoryDtos(batch).FirstOrDefault() ?? ToDto(existing);
+        var message = batch.Count > 1
+            ? "Cap nhat thong bao cho tat ca sinh vien thanh cong"
+            : "Cap nhat thong bao thanh cong";
+
+        return (true, message, data);
     }
 
     public async Task<(bool Success, string Message)> DeleteAsync(int id)
@@ -117,27 +177,43 @@ public class NotificationService(INotificationRepository repo, AppDbContext cont
         var existing = await repo.GetByIdAsync(id);
         if (existing == null) throw new BadRequestException("Thong bao khong ton tai");
 
-        repo.Delete(existing);
+        var batch = await GetSentHistoryBatchAsync(existing);
+        if (batch.Count <= 1) batch = [existing];
+
+        foreach (var notification in batch)
+        {
+            repo.Delete(notification);
+        }
+
         await repo.SaveChangesAsync();
 
-        return (true, "Xoa thong bao thanh cong");
+        var message = batch.Count > 1
+            ? "Xoa thong bao cho tat ca sinh vien thanh cong"
+            : "Xoa thong bao thanh cong";
+
+        return (true, message);
     }
 
     public async Task<List<NotificationResponseDto>> GetAllAsync(NotificationFilterDto filter)
     {
         var list = await repo.GetAllAsync(filter.SearchText, filter.FromDate, filter.ToDate);
-        return list.Select(ToDto).ToList();
+        return ToSentHistoryDtos(list);
     }
 
     public async Task<PagedResultDto<NotificationResponseDto>> GetPagedAsync(NotificationFilterDto filter)
     {
         var page = filter.GetPage();
         var pageSize = filter.GetPageSize(8);
-        var (items, totalCount) = await repo.GetPagedAsync(filter.SearchText, filter.FromDate, filter.ToDate, page, pageSize);
+        var sentHistory = ToSentHistoryDtos(await repo.GetAllAsync(filter.SearchText, filter.FromDate, filter.ToDate));
+        var totalCount = sentHistory.Count;
+        var items = sentHistory
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
         return new PagedResultDto<NotificationResponseDto>
         {
-            Items = items.Select(ToDto).ToList(),
+            Items = items,
             Page = page,
             PageSize = pageSize,
             TotalItems = totalCount,

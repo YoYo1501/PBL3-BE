@@ -26,7 +26,8 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
         if (!invoices.Any())
             return (false, "Không có dữ liệu doanh thu trong khoảng thời gian này.", null);
 
-        var details = invoices.Select(i => new RevenueDetailDto
+        var detailInvoices = FilterByStatus(invoices, filter.Status);
+        var details = detailInvoices.Select(i => new RevenueDetailDto
         {
             Period = i.Period,
             RoomCode = i.Room.RoomCode,
@@ -88,7 +89,8 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
         if (!invoices.Any())
             return Array.Empty<byte>();
 
-        var details = invoices.Select(i => new RevenueDetailDto
+        var detailInvoices = FilterByStatus(invoices, filter.Status);
+        var details = detailInvoices.Select(i => new RevenueDetailDto
         {
             Period = i.Period,
             RoomCode = i.Room.RoomCode,
@@ -165,6 +167,18 @@ public class RevenueService(IRevenueRepository repo) : IRevenueService
 
     private static (DateTime StartDate, DateTime EndDate) NormalizeDateRange(RevenueFilterDto filter)
         => (filter.StartDate.Date, filter.EndDate.Date.AddDays(1).AddTicks(-1));
+
+    private static List<BackendAPI.Models.Entities.Invoice> FilterByStatus(
+        IEnumerable<BackendAPI.Models.Entities.Invoice> invoices,
+        string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return invoices.ToList();
+
+        var normalized = status.Trim();
+        return invoices
+            .Where(i => string.Equals(i.Status, normalized, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
 
     private static string? ValidateFilter(RevenueFilterDto filter)
     {
